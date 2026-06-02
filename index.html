@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Huawei Return Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --s50:#EBF7F9;--s100:#C2EAF1;--s200:#87D4E3;--s300:#4BBDD3;
+  --s400:#1FA3BE;--s500:#1589A0;--s600:#0F6E82;--s700:#0A5165;--s800:#063848;
+  --cream:#FAF7F2;--cream2:#F3EDE2;--cream3:#E8DFD0;--cream4:#D4C9B5;
+  --white:#FFFFFF;
+  --td:#1A3540;--tm:#2E6278;--tmu:#5A8A9A;--tl:#8BB5C2;
+  --warn-bg:#FFF3DC;--warn-txt:#8A5A0A;--warn-brd:#F0C060;
+  --ok-bg:#E1F5EE;--ok-txt:#085041;
+  --alert-bg:#FCEBEB;--alert-txt:#791F1F;
+  --info-bg:#EBF7F9;--info-txt:#0A5165;
+  --radius-sm:6px;--radius-md:9px;--radius-lg:12px;--radius-xl:16px;
+  --sidebar-w:200px;
+  --font:'IBM Plex Sans Thai',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--cream);color:var(--td);font-size:13px;line-height:1.5}
+
+/* ── SHELL ── */
+.shell{display:flex;flex-direction:column;height:100vh}
+.topbar{background:var(--s500);height:48px;padding:0 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar-logo{background:rgba(255,255,255,.18);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.topbar h1{font-size:15px;font-weight:600;color:#fff;letter-spacing:.2px}
+.topbar-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:1px}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.wave{height:4px;background:var(--s400);flex-shrink:0}
+.body-row{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--s700);display:flex;flex-direction:column;overflow-y:auto}
+.sb-section{font-size:9px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.8px;padding:14px 16px 4px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 16px;color:rgba(255,255,255,.6);cursor:pointer;font-size:12px;font-weight:400;transition:all .15s;border-left:2px solid transparent;user-select:none}
+.sb-item.active{color:#fff;background:rgba(255,255,255,.1);border-left-color:var(--s200);font-weight:500}
+.sb-item:hover:not(.active){color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
+.sb-item i{font-size:15px;flex-shrink:0}
+.sb-badge{margin-left:auto;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);font-size:9px;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center}
+.sb-badge.warn{background:#C07A10;color:#fff}
+.sb-bottom{margin-top:auto;padding:12px}
+.sb-bottom .btn{width:100%;justify-content:center}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;background:var(--cream);min-width:0}
+.page{padding:16px;display:none}
+.page.active{display:block}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--radius-md);font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:var(--font);white-space:nowrap}
+.btn-primary{background:var(--s500);color:#fff}.btn-primary:hover{background:var(--s600)}
+.btn-ghost{background:transparent;border:0.5px solid var(--s200);color:var(--s600)}.btn-ghost:hover{background:var(--s50)}
+.btn-cream{background:var(--cream2);border:0.5px solid var(--cream3);color:var(--tm)}.btn-cream:hover{background:var(--cream3)}
+.btn-success{background:#0F6E56;color:#fff}.btn-success:hover{background:#085041}
+.btn-danger{background:#A32D2D;color:#fff}.btn-danger:hover{background:#791F1F}
+.btn-warn{background:var(--warn-bg);color:var(--warn-txt);border:0.5px solid var(--warn-brd)}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:var(--radius-sm)}
+.btn-xs{padding:3px 7px;font-size:10px;border-radius:5px}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:0.5px solid var(--s100);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;color:var(--s700);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.card-title i{font-size:16px}
+.card-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.cnt-badge{background:var(--s50);color:var(--s700);font-size:9px;padding:2px 8px;border-radius:20px;font-weight:500}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px}
+.stat-card{background:var(--white);border:0.5px solid var(--s100);border-radius:var(--radius-md);padding:12px 14px;text-align:center}
+.stat-label{font-size:9px;color:var(--tmu);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px}
+.stat-num{font-size:24px;font-weight:600;line-height:1}
+.col-total{color:var(--s500)}.col-pend{color:#C07A10}.col-proc{color:#8A5A0A}
+.col-done{color:#0F6E56}.col-open{color:#A32D2D}
+
+/* ── ALERT BAR ── */
+.alert-bar{background:var(--warn-bg);border:0.5px solid var(--warn-brd);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
+.alert-bar i{color:#C07A10;font-size:17px;margin-top:1px;flex-shrink:0}
+.alert-cases{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.alert-pill{background:var(--white);border:0.5px solid var(--warn-brd);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--warn-txt);font-weight:500;cursor:pointer}
+.alert-pill:hover{background:var(--warn-bg)}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.g3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.span2{grid-column:span 2}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:10px;color:var(--tmu);font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+.form-input{font-size:12px;border:0.5px solid var(--s100);border-radius:var(--radius-sm);padding:7px 9px;background:var(--cream);color:var(--td);width:100%;font-family:var(--font);transition:border-color .15s}
+.form-input:focus{outline:none;border-color:var(--s300);background:var(--white)}
+textarea.form-input{resize:vertical;min-height:56px}
+.form-divider{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--tmu);font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.form-divider::before,.form-divider::after{content:'';flex:1;height:0.5px;background:var(--s100)}
+.btn-row{display:flex;gap:7px;justify-content:flex-end;margin-top:12px}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+thead th{background:var(--s50);padding:7px 9px;text-align:left;font-weight:600;color:var(--s700);border-bottom:0.5px solid var(--s100);font-size:10px;letter-spacing:.3px;white-space:nowrap}
+tbody td{padding:7px 9px;border-bottom:0.5px solid var(--cream2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--s50)}
+.no-data{text-align:center;padding:36px;color:var(--tl);font-size:12px}
+.no-data i{font-size:28px;display:block;margin-bottom:7px;opacity:.5}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.badge-pend{background:var(--warn-bg);color:var(--warn-txt)}
+.badge-proc{background:var(--info-bg);color:var(--info-txt)}
+.badge-done{background:var(--ok-bg);color:var(--ok-txt)}
+.ptag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:9px;font-weight:600;background:var(--s50);color:var(--s700);border:0.5px solid var(--s100)}
+
+/* ── SEARCH ROW ── */
+.search-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.search-row .form-input{flex:1;min-width:160px}
+.search-row select.form-input{flex:0 0 auto;min-width:120px}
+
+/* ── RANK BADGE ── */
+.rank{display:inline-flex;width:17px;height:17px;border-radius:50%;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0}
+.r1{background:#E6A817;color:#5C3800}
+.r2{background:var(--s200);color:var(--s800)}
+.r3{background:var(--cream3);color:var(--td)}
+.rn{background:var(--cream2);color:var(--tmu)}
+
+/* ── BAR CHART (HTML) ── */
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.bar-lbl{font-size:10px;color:var(--tm);min-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:var(--cream3);border-radius:4px;overflow:hidden}
+.bar-fill{height:8px;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-num{font-size:10px;font-weight:600;color:var(--s700);min-width:22px;text-align:right}
+
+/* ── UPLOAD ── */
+.upload-area{border:1px dashed var(--s200);border-radius:var(--radius-md);padding:16px;text-align:center;background:var(--cream);cursor:pointer;transition:.15s}
+.upload-area:hover{border-color:var(--s400);background:var(--s50)}
+.img-preview{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.img-thumb-wrap{position:relative;display:inline-block}
+.img-thumb{width:64px;height:64px;object-fit:cover;border-radius:7px;border:0.5px solid var(--s100)}
+.img-rm{position:absolute;top:-4px;right:-4px;background:#A32D2D;color:#fff;border:none;border-radius:50%;width:15px;height:15px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
+
+/* ── SIG ── */
+.sig-pad{border:1px dashed var(--s200);border-radius:var(--radius-md);background:var(--cream);cursor:crosshair;touch-action:none;display:block;width:100%}
+
+/* ── MODAL ── */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(3,33,44,.45);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--white);border-radius:var(--radius-xl);border:0.5px solid var(--s100);padding:20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal-lg{max-width:640px}
+.modal-title{font-size:14px;font-weight:600;color:var(--s700);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+
+/* ── TICKET ── */
+.ticket{max-width:380px;margin:0 auto}
+.ticket-band{background:var(--s500);color:#fff;border-radius:var(--radius-md);padding:14px;text-align:center;margin-bottom:14px}
+.ticket-inv{font-size:18px;font-weight:600;letter-spacing:1.5px;font-family:var(--mono)}
+.ticket-plat{font-size:10px;opacity:.7;margin-top:3px}
+.ticket-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--cream2);font-size:11px}
+.ticket-row:last-of-type{border-bottom:none}
+.ticket-key{color:var(--tmu)}.ticket-val{font-weight:500;text-align:right;max-width:210px;word-break:break-all}
+.ticket-sig{margin-top:12px;text-align:center}
+.ticket-sig img{max-width:160px;border-top:0.5px solid var(--s100);padding-top:8px}
+.ticket-footer{margin-top:12px;text-align:center;font-size:9px;color:var(--tl);border-top:1px dashed var(--s100);padding-top:9px;font-family:var(--mono)}
+.ticket-remark{background:var(--cream);border-radius:var(--radius-sm);padding:8px;margin-top:10px;font-size:10px;color:var(--tm);line-height:1.5}
+
+/* ── TREND LEGEND ── */
+.legend-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tm)}
+.legend-line{width:22px;height:2px;border-radius:1px;flex-shrink:0}
+
+/* ── SUMMARY TABLE ── */
+.sum-table th{font-size:9px}
+.sum-table td{text-align:center;font-size:10px}
+.sum-table .row-lbl{text-align:left;font-size:10px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.cell-hi{color:var(--s600);font-weight:600}
+.cell-lo{color:var(--tl)}
+
+
+/* ── SVG ICONS ── */
+.sb-item svg{flex-shrink:0;opacity:.85;transition:opacity .15s}
+.sb-item.active svg{opacity:1}
+.sb-item:hover:not(.active) svg{opacity:.95}
+.stat-card svg{display:block;margin:0 auto}
+.topbar-logo svg{display:block}
+.btn svg{flex-shrink:0}
+
+/* ── PRINT ── */
+@media print{
+  .sidebar,.topbar,.wave,.no-print{display:none!important}
+  .modal-backdrop{display:block!important;position:static!important;background:none!important}
+  .modal{box-shadow:none!important;border:none!important;max-height:none!important}
+  body,.shell,.body-row,.main{height:auto!important;overflow:visible!important}
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s200);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--s300)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="4" width="11" height="13" rx="2" stroke="white" stroke-width="1.4" fill="none"/>
+  <path d="M8 4V3a2 2 0 0 1 4 0v1" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M5 9h7M5 12h5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <circle cx="15" cy="14" r="3.5" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.2"/>
+  <path d="M13.5 14l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#fff">Huawei Return Management System</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.6)">ระบบจัดการรับคืนสินค้า Marketplace</div>
+    </div>
+    <div class="topbar-right no-print">
+      <button class="btn btn-cream btn-sm" onclick="exportCSV()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3" fill="none"/>
+  <line x1="1" y1="4.5" x2="13" y2="4.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+  <path d="M4 7.5h2.5M4 9.5h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M9 7l1.5 1.5L9 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="10.5" y1="8.5" x2="7.5" y2="8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+</svg> Export Excel</button>
+      <button class="btn btn-cream btn-sm" onclick="showPage('form');resetForm()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="9" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="none"/>
+  <path d="M3.5 5h4M3.5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="11" cy="11" r="2.5" fill="currentColor"/>
+  <path d="M10.3 11h1.4M11 10.3v1.4" stroke="white" stroke-width="1" stroke-linecap="round"/>
+</svg> เคสใหม่</button>
+    </div>
+  </div>
+  <div class="wave"></div>
+
+  <div class="body-row">
+    <!-- SIDEBAR -->
+    <aside class="sidebar no-print">
+      <div class="sb-section">ภาพรวม</div>
+      <div class="sb-item active" id="nav-dash" onclick="showPage('dash')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.9"/>
+  <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/>
+  <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/>
+  <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.75"/>
+</svg> Dashboard</div>
+      <div class="sb-item" id="nav-trend" onclick="showPage('trend')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M1 12 L4 8 L7 9.5 L11 4 L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M12 4h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="1" y1="14" x2="15" y2="14" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+</svg> Trendline</div>
+      <div class="sb-section">จัดการเคส</div>
+      <div class="sb-item" id="nav-pending" onclick="showPage('pending')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+  <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg> รอพิจารณา <span class="sb-badge warn" id="sb-pend-cnt">0</span></div>
+      <div class="sb-item" id="nav-proc" onclick="showPage('proc')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M2 8a6 6 0 1 1 1.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M2 12V8h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg> รอทำรับคืน <span class="sb-badge" id="sb-proc-cnt">0</span></div>
+      <div class="sb-item" id="nav-done" onclick="showPage('done')"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+  <path d="M5 8l2.2 2.2L11 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg> ส่งสต็อกแล้ว <span class="sb-badge" id="sb-done-cnt">0</span></div>
+      <div class="sb-item" id="nav-form" onclick="showPage('form');resetForm()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2.5" y="1.5" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+  <path d="M5 5h4M5 7.5h4M5 10h2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="12.5" cy="12.5" r="2.5" fill="currentColor" opacity="0.8"/>
+  <path d="M11.8 12.5h1.4M12.5 11.8v1.4" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+</svg> กรอกข้อมูล</div>
+      <div class="sb-bottom">
+        <button class="btn btn-cream btn-sm" onclick="exportCSV()"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3" fill="none"/>
+  <line x1="1" y1="4.5" x2="13" y2="4.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+  <path d="M4 7.5h2.5M4 9.5h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M9 7l1.5 1.5L9 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="10.5" y1="8.5" x2="7.5" y2="8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+</svg> Export ทั้งหมด</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+      <!-- ═══ DASHBOARD ═══ -->
+      <div class="page active" id="page-dash">
+        <div class="stats-row">
+          <div class="stat-card"><div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="5" width="14" height="18" rx="2.5" stroke="#1589A0" stroke-width="1.6" fill="none"/>
+  <path d="M6 10h8M6 13h8M6 16h5" stroke="#1589A0" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="11" y="13" width="14" height="11" rx="2" fill="#EBF7F9" stroke="#1FA3BE" stroke-width="1.2"/>
+  <path d="M14 17h8M14 20h5" stroke="#1589A0" stroke-width="1.3" stroke-linecap="round"/>
+</svg></div><div class="stat-label">เคสทั้งหมด</div><div class="stat-num col-total" id="st-total">0</div></div>
+          <div class="stat-card"><div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="14" cy="14" r="10" stroke="#C07A10" stroke-width="1.6" fill="#FFF3DC"/>
+  <path d="M14 8v6l4 2" stroke="#C07A10" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="14" cy="14" r="1.5" fill="#C07A10" opacity="0.3"/>
+</svg></div><div class="stat-label">รอพิจารณา</div><div class="stat-num col-pend" id="st-pend">0</div></div>
+          <div class="stat-card"><div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M5 14A9 9 0 1 1 7 20" stroke="#1FA3BE" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+  <path d="M5 20V14h6" stroke="#1FA3BE" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="14" cy="14" r="3" fill="#EBF7F9" stroke="#1FA3BE" stroke-width="1.2"/>
+  <path d="M13 14l1 1 1.5-1.5" stroke="#1FA3BE" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div><div class="stat-label">รอทำรับคืน</div><div class="stat-num col-proc" id="st-proc">0</div></div>
+          <div class="stat-card"><div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="14" cy="14" r="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.6"/>
+  <path d="M9 14l3.5 3.5L19 10" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div><div class="stat-label">ส่งสต็อกแล้ว</div><div class="stat-num col-done" id="st-done">0</div></div>
+          <div class="stat-card"><div style="margin-bottom:6px"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M14 5v9.5" stroke="#A32D2D" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="14" cy="19.5" r="1.8" fill="#A32D2D"/>
+  <path d="M6 24h16" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+  <circle cx="14" cy="14" r="11" stroke="#FCEBEB" stroke-width="8" fill="none" opacity="0.6"/>
+  <circle cx="14" cy="14" r="11" stroke="#A32D2D" stroke-width="1.5" fill="none"/>
+</svg></div><div class="stat-label">ยังไม่ปิดเคส</div><div class="stat-num col-open" id="st-open">0</div></div>
+        </div>
+        <div id="alert-section"></div>
+        <div class="g3" style="margin-bottom:12px">
+          <div class="card span2">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> สถานะแยก Platform
+              <div class="card-actions"><a href="#" style="font-size:10px;color:var(--s500);text-decoration:none" onclick="showPage('trend');return false">ดู Trendline →</a></div>
+            </div>
+            <div style="position:relative;height:170px"><canvas id="ch-plat" role="img" aria-label="Bar chart Platform รายสถานะ"></canvas></div>
+            <div class="legend-row" style="margin-top:8px;margin-bottom:0">
+              <span class="legend-item"><span style="width:10px;height:10px;border-radius:2px;background:#C07A10;display:inline-block"></span>รอพิจารณา</span>
+              <span class="legend-item"><span style="width:10px;height:10px;border-radius:2px;background:#1FA3BE;display:inline-block"></span>รอทำรับคืน</span>
+              <span class="legend-item"><span style="width:10px;height:10px;border-radius:2px;background:#0F6E56;display:inline-block"></span>ส่งสต็อกแล้ว</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-donut"></i> สัดส่วน Platform</div>
+            <div style="position:relative;height:130px"><canvas id="ch-pie" role="img" aria-label="Donut chart Platform"></canvas></div>
+            <div id="pie-legend" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <div class="g2" style="margin-bottom:12px">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-trending-up"></i> สาเหตุที่พบบ่อย <span class="cnt-badge" style="background:var(--warn-bg);color:var(--warn-txt)" id="cond-cnt-badge"></span></div>
+            <div id="cond-bars"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-list-check"></i> เหตุผลการคืน</div>
+            <div id="reason-bars"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-history"></i> เคสล่าสุด
+            <div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> Export</button></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:130px">Invoice No.</th>
+                <th style="width:90px">Platform</th>
+                <th style="width:75px">วันที่รับ</th>
+                <th style="width:130px">สภาพสินค้า</th>
+                <th style="width:100px">เหตุผล</th>
+                <th style="width:75px">สถานะ</th>
+                <th style="width:90px">จัดการ</th>
+              </tr></thead>
+              <tbody id="recent-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TRENDLINE ═══ -->
+      <div class="page" id="page-trend">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title"><i class="ti ti-chart-line"></i> Trendline — สภาพสินค้าแต่ละประเภทรายเดือน
+            <div class="card-actions">
+              <select class="form-input btn-sm" id="trend-filter" onchange="rebuildTrend()" style="min-width:160px;font-size:11px">
+                <option value="">ทุกประเภท</option>
+              </select>
+            </div>
+          </div>
+          <div class="legend-row" id="trend-legend"></div>
+          <div style="position:relative;height:270px"><canvas id="ch-trend" role="img" aria-label="Line chart แนวโน้มสภาพสินค้าแต่ละประเภทรายเดือน"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title"><i class="ti ti-chart-area-line"></i> Trendline — เหตุผลการคืนรายเดือน</div>
+          <div class="legend-row" id="reason-legend"></div>
+          <div style="position:relative;height:230px"><canvas id="ch-reason" role="img" aria-label="Line chart เหตุผลการคืนรายเดือน"></canvas></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> จำนวนเคสรายเดือน (รวม)</div>
+            <div style="position:relative;height:170px"><canvas id="ch-monthly" role="img" aria-label="Bar chart จำนวนเคสรายเดือน"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-table"></i> ตารางสรุปรายประเภท</div>
+            <div class="table-wrap" style="max-height:220px;overflow-y:auto">
+              <table class="sum-table">
+                <thead id="sum-thead"></thead>
+                <tbody id="sum-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ LISTS ═══ -->
+      <div class="page" id="page-pending">
+        <div class="card"><div class="card-title"><i class="ti ti-clock"></i> รอพิจารณา <span class="cnt-badge" id="cnt-pending"></span><div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="exportCSV('รอพิจารณา')"><i class="ti ti-file-spreadsheet"></i> Export</button></div></div>
+          <div class="search-row">
+            <input class="form-input" id="si-pend" placeholder="ค้นหา Invoice, Order, Tracking..." oninput="filterList('รอพิจารณา','si-pend','sp-pend','sc-pend')">
+            <select class="form-input" id="sp-pend" onchange="filterList('รอพิจารณา','si-pend','sp-pend','sc-pend')"><option value="">ทุก Platform</option></select>
+            <select class="form-input" id="sc-pend" onchange="filterList('รอพิจารณา','si-pend','sp-pend','sc-pend')"><option value="">ทุกสาเหตุ</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th style="width:130px">Invoice No.</th><th style="width:90px">Platform</th><th style="width:75px">วันที่รับ</th><th style="width:130px">สภาพสินค้า</th><th style="width:100px">Tracking</th><th style="width:75px">สถานะ</th><th style="width:120px">จัดการ</th></tr></thead><tbody id="tbody-pending"></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-proc">
+        <div class="card"><div class="card-title"><i class="ti ti-loader"></i> รอทำรับคืน <span class="cnt-badge" id="cnt-proc"></span><div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="exportCSV('รอทำรับคืน')"><i class="ti ti-file-spreadsheet"></i> Export</button></div></div>
+          <div class="search-row">
+            <input class="form-input" id="si-proc" placeholder="ค้นหา Invoice, Order, Tracking..." oninput="filterList('รอทำรับคืน','si-proc','sp-proc','sc-proc')">
+            <select class="form-input" id="sp-proc" onchange="filterList('รอทำรับคืน','si-proc','sp-proc','sc-proc')"><option value="">ทุก Platform</option></select>
+            <select class="form-input" id="sc-proc" onchange="filterList('รอทำรับคืน','si-proc','sp-proc','sc-proc')"><option value="">ทุกสาเหตุ</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th style="width:130px">Invoice No.</th><th style="width:90px">Platform</th><th style="width:75px">วันที่รับ</th><th style="width:130px">สภาพสินค้า</th><th style="width:100px">Tracking</th><th style="width:75px">สถานะ</th><th style="width:120px">จัดการ</th></tr></thead><tbody id="tbody-proc"></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-done">
+        <div class="card"><div class="card-title"><i class="ti ti-circle-check"></i> ส่งสต็อกแล้ว <span class="cnt-badge" id="cnt-done"></span><div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="exportCSV('ส่งสต็อกแล้ว')"><i class="ti ti-file-spreadsheet"></i> Export</button></div></div>
+          <div class="search-row">
+            <input class="form-input" id="si-done" placeholder="ค้นหา Invoice, Order, Tracking..." oninput="filterList('ส่งสต็อกแล้ว','si-done','sp-done','sc-done')">
+            <select class="form-input" id="sp-done" onchange="filterList('ส่งสต็อกแล้ว','si-done','sp-done','sc-done')"><option value="">ทุก Platform</option></select>
+            <select class="form-input" id="sc-done" onchange="filterList('ส่งสต็อกแล้ว','si-done','sp-done','sc-done')"><option value="">ทุกสาเหตุ</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th style="width:130px">Invoice No.</th><th style="width:90px">Platform</th><th style="width:75px">วันที่รับ</th><th style="width:130px">สภาพสินค้า</th><th style="width:100px">Tracking</th><th style="width:75px">สถานะ</th><th style="width:120px">จัดการ</th></tr></thead><tbody id="tbody-done"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ═══ FORM ═══ -->
+      <div class="page" id="page-form">
+        <div class="card">
+          <div class="card-title" id="form-title"><i class="ti ti-file-plus"></i> กรอกข้อมูลรับคืนสินค้า</div>
+          <div class="form-grid">
+            <div class="form-divider">ข้อมูลหลัก</div>
+            <div class="form-group"><div class="form-label">วันที่รับสินค้า *</div><input class="form-input" type="date" id="f-date"></div>
+            <div class="form-group"><div class="form-label">Invoice No. *</div><input class="form-input" type="text" id="f-invoice" placeholder="CIV482260..."></div>
+            <div class="form-group"><div class="form-label">Platform *</div>
+              <select class="form-input" id="f-platform">
+                <option>TIKTOK_HUAWEI</option><option>SHOPEE_HUAWEI</option><option>Lazada_HUAWEI</option><option>HUAWEI_Web</option>
+              </select>
+            </div>
+            <div class="form-group"><div class="form-label">Order Number</div><input class="form-input" type="text" id="f-order" placeholder=""></div>
+            <div class="form-group"><div class="form-label">สภาพสินค้า / ปัญหา</div>
+              <select class="form-input" id="f-condition">
+                <option>ยังไม่ได้แกะใช้งาน</option><option>แกะสินค้าแล้ว</option><option>สินค้าหาย</option>
+                <option>สินค้าชำรุดเสียหาย</option><option>สินค้ากล่องบุบ</option><option>ได้รับสินค้าผิดรุ่น</option>
+                <option>ได้รับสินค้าไม่ครบ</option><option>ได้รับสินค้าไม่ใช่ของ Huawei</option><option>ได้รับสินค้าคืนไม่ครบ</option><option>อื่นๆ</option>
+              </select>
+            </div>
+            <div class="form-group"><div class="form-label">ขนส่ง</div>
+              <select class="form-input" id="f-carrier">
+                <option>J&T</option><option>FLASH</option><option>SPX</option><option>LEX</option>
+                <option>Lazada</option><option>Shopee Xpress</option><option>KERRY</option>
+                <option>EMS</option><option>Thaipost</option><option>DHL</option><option>KEX</option><option>อื่นๆ</option>
+              </select>
+            </div>
+            <div class="form-group"><div class="form-label">Tracking No. (เลขตีกลับ)</div><input class="form-input" type="text" id="f-tracking" placeholder="762493819706"></div>
+            <div class="form-group"><div class="form-label">No. CC / CCC</div><input class="form-input" type="text" id="f-cc" placeholder="CCC482260501..."></div>
+            <div class="form-group full"><div class="form-label">เหตุผล</div>
+              <select class="form-input" id="f-reason">
+                <option>ตีกลับจากขนส่ง</option><option>ยกเลิกก่อนออกจากคลัง</option><option>ยกเลิกก่อนจัดส่ง</option>
+                <option>ลูกค้าเปลี่ยนใจ</option><option>สินค้าไม่ตรงที่สั่ง</option><option>ใช้งานไม่ได้</option>
+                <option>รับสินค้าไม่ครบ</option><option>อื่นๆ</option>
+              </select>
+            </div>
+            <div class="form-group full"><div class="form-label">Remark / หมายเหตุ</div><textarea class="form-input" id="f-remark" rows="2"></textarea></div>
+            <div class="form-divider">สถานะ & การดำเนินการ</div>
+            <div class="form-group"><div class="form-label">สถานะ</div>
+              <select class="form-input" id="f-status">
+                <option>รอพิจารณา</option><option>รอทำรับคืน</option><option>ส่งสต็อกแล้ว</option>
+              </select>
+            </div>
+            <div class="form-group"><div class="form-label">วันที่ส่งสต็อก</div><input class="form-input" type="date" id="f-stockdate"></div>
+            <div class="form-divider">รูปภาพ & ลายเซ็น</div>
+            <div class="form-group full">
+              <div class="form-label" style="margin-bottom:6px">รูปภาพแนบ</div>
+              <div class="upload-area" onclick="document.getElementById('f-files').click()">
+                <i class="ti ti-photo-up" style="font-size:22px;color:var(--tl);display:block;margin-bottom:4px"></i>
+                <div style="font-size:11px;color:var(--tmu)">คลิกเพื่อเลือกรูปภาพ (หลายรูปได้)</div>
+              </div>
+              <input type="file" id="f-files" accept="image/*" multiple style="display:none" onchange="handleImages(event)">
+              <div class="img-preview" id="img-preview"></div>
+            </div>
+            <div class="form-group full">
+              <div class="form-label" style="margin-bottom:6px">ลายเซ็น</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+                <button class="btn btn-ghost btn-sm" onclick="openSigModal('receive')"><i class="ti ti-signature"></i> เซ็นรับสินค้า</button>
+                <button class="btn btn-ghost btn-sm" onclick="openSigModal('deliver')"><i class="ti ti-signature"></i> เซ็นส่งสินค้า</button>
+                <button class="btn btn-danger btn-sm" id="clear-sig-btn" onclick="clearSig()" style="display:none"><i class="ti ti-eraser"></i> ล้างลายเซ็น</button>
+              </div>
+              <div id="sig-preview"></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="showPage('dash')"><i class="ti ti-x"></i> ยกเลิก</button>
+            <button class="btn btn-primary" onclick="saveCase()"><i class="ti ti-device-floppy"></i> บันทึกเคส</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-backdrop" id="modal-view">
+  <div class="modal modal-lg">
+    <div class="modal-title">รายละเอียดเคส <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-view')"><i class="ti ti-x"></i></button></div>
+    <div id="modal-view-content"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-ticket">
+  <div class="modal">
+    <div class="modal-title">ตั๋วรับคืนสินค้า <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-ticket')"><i class="ti ti-x"></i></button></div>
+    <div id="modal-ticket-content"></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="window.print()"><i class="ti ti-printer"></i> พิมพ์ตั๋ว</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-sig">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">วาดลายเซ็น <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-sig')"><i class="ti ti-x"></i></button></div>
+    <div style="font-size:11px;color:var(--tmu);margin-bottom:8px">วาดลายเซ็นในช่องด้านล่าง รองรับ mouse และ touch</div>
+    <canvas id="sig-canvas" class="sig-pad" width="380" height="150"></canvas>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="clearSigCanvas()"><i class="ti ti-eraser"></i> ล้าง</button>
+      <button class="btn btn-success btn-sm" onclick="saveSig()"><i class="ti ti-check"></i> บันทึกลายเซ็น</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+const SEED = [
+  {id:'s1',createdAt:'2025-08-20T10:00:00Z',receivedDate:'2025-08-20',invoiceNo:'CIV482250810602',platform:'TIKTOK_HUAWEI',orderNo:'579908735399134212',condition:'สินค้าหาย',carrier:'J&T',tracking:'762493819706',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s2',createdAt:'2025-08-26T10:00:00Z',receivedDate:'2025-08-26',invoiceNo:'CIV482250834095',platform:'SHOPEE_HUAWEI',orderNo:'250821D1E7QV6T',condition:'ได้รับสินค้าผิดรุ่น',carrier:'Shopee Xpress',tracking:'',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s3',createdAt:'2025-09-16T10:00:00Z',receivedDate:'2025-09-16',invoiceNo:'CIV482250907880',platform:'TIKTOK_HUAWEI',orderNo:'580272612057646646',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'J&T',tracking:'763855333161',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s4',createdAt:'2025-10-28T10:00:00Z',receivedDate:'2025-10-28',invoiceNo:'CIV482251000363',platform:'TIKTOK_HUAWEI',orderNo:'580590397589915397',condition:'สินค้าชำรุดเสียหาย',carrier:'J&T',tracking:'764408501581',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอทำรับคืน',stockDate:'',images:[],signature:null},
+  {id:'s5',createdAt:'2025-11-24T10:00:00Z',receivedDate:'2025-11-24',invoiceNo:'CIV482251050248',platform:'TIKTOK_HUAWEI',orderNo:'580988214594733964',condition:'สินค้าหาย',carrier:'EMS',tracking:'WC028699738TH',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอทำรับคืน',stockDate:'',images:[],signature:null},
+  {id:'s6',createdAt:'2025-12-16T10:00:00Z',receivedDate:'2025-12-16',invoiceNo:'CIV482251211222',platform:'TIKTOK_HUAWEI',orderNo:'581553499365344932',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'J&T',tracking:'767529653726',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'ส่งสต็อกแล้ว',stockDate:'2025-12-20',images:[],signature:null},
+  {id:'s7',createdAt:'2026-01-22T10:00:00Z',receivedDate:'2026-01-22',invoiceNo:'CIV482260104127',platform:'TIKTOK_HUAWEI',orderNo:'581936861909845974',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'FLASH',tracking:'THT943569057',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'ส่งสต็อกแล้ว',stockDate:'2026-01-28',images:[],signature:null},
+  {id:'s8',createdAt:'2026-02-17T10:00:00Z',receivedDate:'2026-02-17',invoiceNo:'CIV482260227183',platform:'TIKTOK_HUAWEI',orderNo:'582564744734344756',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'J&T',tracking:'791507391290',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'รอทำรับคืน',stockDate:'',images:[],signature:null},
+  {id:'s9',createdAt:'2026-03-16T10:00:00Z',receivedDate:'2026-03-16',invoiceNo:'CIV482260331306',platform:'Lazada_HUAWEI',orderNo:'1088512552142346',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'FLASH',tracking:'TH01408FKEQ73b0',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'ส่งสต็อกแล้ว',stockDate:'2026-03-22',images:[],signature:null},
+  {id:'s10',createdAt:'2026-04-16T10:00:00Z',receivedDate:'2026-04-16',invoiceNo:'CIV482260430386',platform:'TIKTOK_HUAWEI',orderNo:'583482418600904613',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'tht2049135028',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'ใช้งานไม่ได้',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s11',createdAt:'2026-04-20T10:00:00Z',receivedDate:'2026-04-20',invoiceNo:'CIV482260422536',platform:'SHOPEE_HUAWEI',orderNo:'2604064QVMQE7K',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'Th01408KMRNV9b0',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'หูฟังไมค์พัง',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s12',createdAt:'2026-04-23T10:00:00Z',receivedDate:'2026-04-23',invoiceNo:'CIV482260437570',platform:'SHOPEE_HUAWEI',orderNo:'26041732DYSQKX',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'TH01408MKKR61B0',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'การเชื่อมต่อไม่เสถียร',status:'รอทำรับคืน',stockDate:'',images:[],signature:null},
+  {id:'s13',createdAt:'2026-04-28T10:00:00Z',receivedDate:'2026-04-28',invoiceNo:'CIV482260441440',platform:'SHOPEE_HUAWEI',orderNo:'26042099AV0P9S',condition:'สินค้าหาย',carrier:'SPX',tracking:'TH01408MWX7R5B0',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'รอยขีดข่วนจำนวนมาก',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s14',createdAt:'2026-04-29T10:00:00Z',receivedDate:'2026-04-29',invoiceNo:'CIV482260447398',platform:'SHOPEE_HUAWEI',orderNo:'260424M6WKXJEP',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'TH01408N1Q037B',ccNo:'',reason:'สินค้าไม่ตรงที่สั่ง',remark:'ใส่ซิมไม่ได้',status:'ส่งสต็อกแล้ว',stockDate:'2026-05-03',images:[],signature:null},
+  {id:'s15',createdAt:'2026-05-13T10:00:00Z',receivedDate:'2026-05-13',invoiceNo:'CIV482260522004',platform:'SHOPEE_HUAWEI',orderNo:'260507R9ECGPQA',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'TH01408PVFGK1B0',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'',status:'รอทำรับคืน',stockDate:'',images:[],signature:null},
+  {id:'s16',createdAt:'2026-04-21T10:00:00Z',receivedDate:'2026-04-21',invoiceNo:'CIV482260438736',platform:'TIKTOK_HUAWEI',orderNo:'583580811515561131',condition:'แกะสินค้าแล้ว',carrier:'J&T',tracking:'795369805790',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'วัสดุไม่ได้มาตรฐาน',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s17',createdAt:'2026-04-22T10:00:00Z',receivedDate:'2026-04-22',invoiceNo:'CIV482260434227',platform:'SHOPEE_HUAWEI',orderNo:'260414RVRS6XG6',condition:'แกะสินค้าแล้ว',carrier:'SPX',tracking:'TH2683656111699',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'ตอบข้อความไม่ได้',status:'ส่งสต็อกแล้ว',stockDate:'2026-04-28',images:[],signature:null},
+  {id:'s18',createdAt:'2026-03-30T10:00:00Z',receivedDate:'2026-03-30',invoiceNo:'CIV482260347703',platform:'Lazada_HUAWEI',orderNo:'1090059116842346',condition:'ได้รับสินค้าไม่ใช่ของ Huawei',carrier:'LEX',tracking:'LEXCRPU001441636',ccNo:'',reason:'ตีกลับจากขนส่ง',remark:'',status:'ส่งสต็อกแล้ว',stockDate:'2026-04-05',images:[],signature:null},
+  {id:'s19',createdAt:'2026-04-16T11:00:00Z',receivedDate:'2026-04-16',invoiceNo:'CIV482260423355',platform:'Lazada_HUAWEI',orderNo:'1095362546568277',condition:'ได้รับสินค้าคืนไม่ครบ',carrier:'FLASH',tracking:'TH01408KJZKH0B0',ccNo:'',reason:'รับสินค้าไม่ครบ',remark:'สั่งนาฬิกาแต่ไม่มีหูฟัง',status:'รอพิจารณา',stockDate:'',images:[],signature:null},
+  {id:'s20',createdAt:'2026-05-05T10:00:00Z',receivedDate:'2026-05-05',invoiceNo:'CIV482260515384',platform:'TIKTOK_HUAWEI',orderNo:'583888282548406128',condition:'แกะสินค้าแล้ว',carrier:'FLASH',tracking:'tht2066412102',ccNo:'',reason:'ลูกค้าเปลี่ยนใจ',remark:'',status:'ส่งสต็อกแล้ว',stockDate:'2026-05-10',images:[],signature:null}
+];
+
+const PLATFORMS = ['TIKTOK_HUAWEI','SHOPEE_HUAWEI','Lazada_HUAWEI','HUAWEI_Web'];
+const PF_COLORS = ['#1FA3BE','#4BBDD3','#0F6E82','#87D4E3'];
+const TREND_COLORS = ['#1FA3BE','#E6A817','#D85A30','#534AB7','#0F6E56','#D4537E','#888780','#639922'];
+const TREND_DASH = [[],[5,3],[2,2],[8,2],[4,4],[6,2,2,2],[],[3,1]];
+
+let cases = JSON.parse(localStorage.getItem('hrms_v4') || 'null');
+if (!cases) { cases = JSON.parse(JSON.stringify(SEED)); localStorage.setItem('hrms_v4', JSON.stringify(cases)); }
+
+let editId = null, currentImages = [], currentSigData = null, currentSigTarget = null;
+let sigCanvas, sigCtx, drawing = false, lx = 0, ly = 0;
+let chartReg = {};
+
+function save() { localStorage.setItem('hrms_v4', JSON.stringify(cases)); }
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function fmt(d) {
+  if (!d) return '—';
+  try { const dt = new Date(d); if (isNaN(dt)) return d; return dt.toLocaleDateString('th-TH', {day:'numeric',month:'short',year:'2-digit'}); }
+  catch { return d; }
+}
+function bcls(s) { return s==='รอพิจารณา'?'badge-pend':s==='รอทำรับคืน'?'badge-proc':s==='ส่งสต็อกแล้ว'?'badge-done':'badge-pend'; }
+function getMonthKey(d) { try { const dt=new Date(d); if(isNaN(dt))return null; return dt.getFullYear()+'-'+(dt.getMonth()+1).toString().padStart(2,'0'); } catch { return null; } }
+function getMonthLabel(k) { if(!k)return''; const [y,m]=k.split('-'); const mn=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; return mn[parseInt(m)-1]+' '+(parseInt(y)%100+2500); }
+function daysAgo(r) { return Math.round((Date.now()-new Date(r.createdAt))/86400000); }
+function killChart(id) { if(chartReg[id]){try{chartReg[id].destroy()}catch{}; delete chartReg[id];} }
+
+function updateSideCounts() {
+  const pend = cases.filter(x=>x.status==='รอพิจารณา').length;
+  const proc = cases.filter(x=>x.status==='รอทำรับคืน').length;
+  const done = cases.filter(x=>x.status==='ส่งสต็อกแล้ว').length;
+  document.getElementById('sb-pend-cnt').textContent = pend;
+  document.getElementById('sb-proc-cnt').textContent = proc;
+  document.getElementById('sb-done-cnt').textContent = done;
+  document.getElementById('st-total').textContent = cases.length;
+  document.getElementById('st-pend').textContent = pend;
+  document.getElementById('st-proc').textContent = proc;
+  document.getElementById('st-done').textContent = done;
+  document.getElementById('st-open').textContent = pend+proc;
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  const p = document.getElementById('page-'+page);
+  const n = document.getElementById('nav-'+page);
+  if (p) p.classList.add('active');
+  if (n) n.classList.add('active');
+  if (page==='dash') renderDash();
+  else if (page==='trend') renderTrend();
+  else if (page==='pending') renderList('รอพิจารณา','tbody-pending','cnt-pending');
+  else if (page==='proc') renderList('รอทำรับคืน','tbody-proc','cnt-proc');
+  else if (page==='done') renderList('ส่งสต็อกแล้ว','tbody-done','cnt-done');
+  updateSideCounts();
+  populateFilters();
+}
+
+// ═══════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════
+function renderDash() {
+  updateSideCounts();
+  renderAlertBar();
+  renderCondBars();
+  renderReasonBars();
+  renderRecentTable();
+  buildPlatBar();
+  buildPieDoughnut();
+}
+
+function renderAlertBar() {
+  const open = cases.filter(x=>x.status!=='ส่งสต็อกแล้ว').sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+  const sec = document.getElementById('alert-section');
+  if (!open.length) { sec.innerHTML=''; return; }
+  sec.innerHTML = `<div class="alert-bar">
+    <i class="ti ti-bell-ringing"></i>
+    <div style="flex:1">
+      <div style="font-size:11px;font-weight:600;color:var(--warn-txt);margin-bottom:5px">มีเคสที่ยังไม่ปิด ${open.length} เคส — ต้องดำเนินการ</div>
+      <div class="alert-cases">${open.slice(0,10).map(r=>`<span class="alert-pill" onclick="openViewModal('${r.id}')">${r.invoiceNo} <span class="badge ${bcls(r.status)}" style="font-size:8px;padding:1px 5px">${r.status}</span> <span style="color:var(--tl)">${daysAgo(r)}ว.</span></span>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+function renderCondBars() {
+  const map={}; cases.forEach(x=>{const k=x.condition||'อื่นๆ'; map[k]=(map[k]||0)+1;});
+  const arr = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('cond-cnt-badge').textContent = arr.length+' ประเภท';
+  const max = arr[0]?arr[0][1]:1;
+  document.getElementById('cond-bars').innerHTML = arr.slice(0,7).map(([k,v],i)=>`
+    <div class="bar-row">
+      <span class="rank ${i===0?'r1':i===1?'r2':i===2?'r3':'rn'}">${i+1}</span>
+      <div class="bar-lbl" title="${k}">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/max*100)}%;background:${i===0?'#E6A817':i<3?'var(--s400)':'var(--s200)'}"></div></div>
+      <span class="bar-num">${v}</span>
+    </div>`).join('');
+}
+
+function renderReasonBars() {
+  const map={}; cases.forEach(x=>{const k=x.reason||'อื่นๆ'; map[k]=(map[k]||0)+1;});
+  const arr = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const max = arr[0]?arr[0][1]:1;
+  document.getElementById('reason-bars').innerHTML = arr.slice(0,7).map(([k,v],i)=>`
+    <div class="bar-row">
+      <span class="rank ${i===0?'r1':i===1?'r2':i===2?'r3':'rn'}">${i+1}</span>
+      <div class="bar-lbl" title="${k}">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/max*100)}%;background:${i===0?'#E6A817':'var(--s300)'}"></div></div>
+      <span class="bar-num">${v}</span>
+    </div>`).join('');
+}
+
+function renderRecentTable() {
+  const recent = [...cases].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,10);
+  document.getElementById('recent-tbody').innerHTML = recent.map(r=>`<tr>
+    <td style="font-weight:600;color:var(--s600);font-family:var(--mono);font-size:10px">${r.invoiceNo}</td>
+    <td><span class="ptag">${r.platform.replace('_HUAWEI','')}</span></td>
+    <td style="color:var(--tm)">${fmt(r.receivedDate)}</td>
+    <td>${r.condition||'—'}</td>
+    <td>${r.reason||'—'}</td>
+    <td><span class="badge ${bcls(r.status)}">${r.status}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-xs" onclick="openViewModal('${r.id}')"><i class="ti ti-eye"></i></button>
+      <button class="btn btn-primary btn-xs" onclick="openTicketModal('${r.id}')"><i class="ti ti-ticket"></i></button>
+    </td>
+  </tr>`).join('');
+}
+
+function buildPlatBar() {
+  killChart('plat');
+  const el = document.getElementById('ch-plat'); if(!el)return;
+  const labels = PLATFORMS.map(p=>p.replace('_HUAWEI',''));
+  const byPF = s => PLATFORMS.map(p=>cases.filter(x=>x.platform===p&&x.status===s).length);
+  chartReg.plat = new Chart(el, {type:'bar',data:{labels,datasets:[
+    {label:'รอพิจารณา',data:byPF('รอพิจารณา'),backgroundColor:'#C07A10',borderRadius:3},
+    {label:'รอทำรับคืน',data:byPF('รอทำรับคืน'),backgroundColor:'#1FA3BE',borderRadius:3},
+    {label:'ส่งสต็อกแล้ว',data:byPF('ส่งสต็อกแล้ว'),backgroundColor:'#0F6E56',borderRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:10},stepSize:1},grid:{color:'rgba(0,0,0,.04)'}}}}});
+}
+
+function buildPieDoughnut() {
+  killChart('pie');
+  const el = document.getElementById('ch-pie'); if(!el)return;
+  const pf = {}; cases.forEach(x=>{pf[x.platform]=(pf[x.platform]||0)+1;});
+  const data = PLATFORMS.map(p=>pf[p]||0);
+  chartReg.pie = new Chart(el,{type:'doughnut',data:{labels:PLATFORMS.map(p=>p.replace('_HUAWEI','')),datasets:[{data,backgroundColor:PF_COLORS,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  const total = data.reduce((a,b)=>a+b,0)||1;
+  document.getElementById('pie-legend').innerHTML = PLATFORMS.map((p,i)=>`
+    <div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:${PF_COLORS[i]};display:inline-block"></span>${p.replace('_HUAWEI','')}</span>
+      <span style="font-weight:600;color:var(--s700)">${data[i]} <span style="color:var(--tl);font-weight:400">(${Math.round(data[i]/total*100)}%)</span></span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+//  TRENDLINE
+// ═══════════════════════════════════════
+let trendMonths = [], trendTopConds = [];
+
+function renderTrend() {
+  trendMonths = [...new Set(cases.map(x=>getMonthKey(x.receivedDate)).filter(Boolean))].sort();
+  const condMap={}; cases.forEach(x=>{const k=x.condition||'อื่นๆ'; condMap[k]=(condMap[k]||0)+1;});
+  trendTopConds = Object.entries(condMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
+  // Populate filter
+  const sel = document.getElementById('trend-filter');
+  sel.innerHTML = '<option value="">ทุกประเภท</option>' + trendTopConds.map(k=>`<option value="${k}">${k}</option>`).join('');
+  buildTrendLine(null);
+  buildReasonLine();
+  buildMonthlyBar();
+  buildSumTable();
+}
+
+function rebuildTrend() {
+  const val = document.getElementById('trend-filter').value;
+  buildTrendLine(val||null);
+}
+
+function buildTrendLine(filterCond) {
+  killChart('trend');
+  const el = document.getElementById('ch-trend'); if(!el)return;
+  const show = filterCond ? [filterCond] : trendTopConds;
+  const labels = trendMonths.map(m=>getMonthLabel(m));
+  const datasets = show.map((cond,i)=>({
+    label: cond,
+    data: trendMonths.map(m=>cases.filter(x=>getMonthKey(x.receivedDate)===m&&x.condition===cond).length),
+    borderColor: TREND_COLORS[i%TREND_COLORS.length],
+    backgroundColor: TREND_COLORS[i%TREND_COLORS.length]+'22',
+    borderWidth: 2,
+    borderDash: TREND_DASH[i%TREND_DASH.length],
+    pointRadius: 4, pointHoverRadius: 6, tension: 0.35, fill: false
+  }));
+  chartReg.trend = new Chart(el,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{font:{size:9},autoSkip:false,maxRotation:30},grid:{display:false}},y:{ticks:{font:{size:9},stepSize:1},grid:{color:'rgba(0,0,0,.04)'},min:0}}}});
+  document.getElementById('trend-legend').innerHTML = datasets.map(ds=>`
+    <span class="legend-item">
+      <span class="legend-line" style="background:${ds.borderColor};border-top:${ds.borderDash.length?'2px dashed '+ds.borderColor:'none'}"></span>
+      ${ds.label}
+    </span>`).join('');
+}
+
+function buildReasonLine() {
+  killChart('reason');
+  const el = document.getElementById('ch-reason'); if(!el)return;
+  const rMap={}; cases.forEach(x=>{const k=x.reason||'อื่นๆ'; rMap[k]=(rMap[k]||0)+1;});
+  const topR = Object.entries(rMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(x=>x[0]);
+  const rColors=['#534AB7','#E6A817','#D85A30','#1FA3BE','#0F6E56','#D4537E'];
+  const rDash=[[],[4,3],[2,2],[6,2],[],[3,2]];
+  const labels = trendMonths.map(m=>getMonthLabel(m));
+  const datasets = topR.map((r,i)=>({
+    label:r, data:trendMonths.map(m=>cases.filter(x=>getMonthKey(x.receivedDate)===m&&x.reason===r).length),
+    borderColor:rColors[i], backgroundColor:rColors[i]+'22',
+    borderWidth:2, borderDash:rDash[i], pointRadius:4, tension:0.35, fill:false
+  }));
+  chartReg.reason = new Chart(el,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{font:{size:9},autoSkip:false,maxRotation:30},grid:{display:false}},y:{ticks:{font:{size:9},stepSize:1},grid:{color:'rgba(0,0,0,.04)'},min:0}}}});
+  document.getElementById('reason-legend').innerHTML = datasets.map(ds=>`<span class="legend-item"><span class="legend-line" style="background:${ds.borderColor}"></span>${ds.label}</span>`).join('');
+}
+
+function buildMonthlyBar() {
+  killChart('monthly');
+  const el = document.getElementById('ch-monthly'); if(!el)return;
+  const labels = trendMonths.map(m=>getMonthLabel(m));
+  const data = trendMonths.map(m=>cases.filter(x=>getMonthKey(x.receivedDate)===m).length);
+  chartReg.monthly = new Chart(el,{type:'bar',data:{labels,datasets:[{label:'จำนวนเคส',data,backgroundColor:'#1FA3BE',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},autoSkip:false,maxRotation:30},grid:{display:false}},y:{ticks:{font:{size:9},stepSize:1},grid:{color:'rgba(0,0,0,.04)'},min:0}}}});
+}
+
+function buildSumTable() {
+  const thead = document.getElementById('sum-thead');
+  const tbody = document.getElementById('sum-tbody');
+  if(!thead||!tbody)return;
+  thead.innerHTML = '<tr><th class="row-lbl" style="min-width:140px">สภาพสินค้า</th>'+trendMonths.map(m=>`<th style="min-width:48px;text-align:center">${getMonthLabel(m)}</th>`).join('')+'<th style="min-width:36px;text-align:center">รวม</th></tr>';
+  tbody.innerHTML = trendTopConds.map((cond,i)=>{
+    const row = trendMonths.map(m=>cases.filter(x=>getMonthKey(x.receivedDate)===m&&x.condition===cond).length);
+    const total = row.reduce((a,b)=>a+b,0);
+    const mx = Math.max(...row,1);
+    return `<tr>
+      <td class="row-lbl"><span class="rank ${i===0?'r1':i===1?'r2':i===2?'r3':'rn'}" style="margin-right:4px">${i+1}</span>${cond}</td>
+      ${row.map(v=>`<td class="${v===mx&&v>0?'cell-hi':v===0?'cell-lo':''}">${v||'—'}</td>`).join('')}
+      <td style="font-weight:600;color:var(--s700);text-align:center">${total}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  LIST & FILTER
+// ═══════════════════════════════════════
+function populateFilters() {
+  const pOpts = '<option value="">ทุก Platform</option>'+PLATFORMS.map(p=>`<option>${p}</option>`).join('');
+  const cMap={}; cases.forEach(x=>{const k=x.condition||'อื่นๆ'; cMap[k]=1;});
+  const cOpts = '<option value="">ทุกสาเหตุ</option>'+Object.keys(cMap).sort().map(k=>`<option>${k}</option>`).join('');
+  ['sp-pend','sp-proc','sp-done'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=pOpts;});
+  ['sc-pend','sc-proc','sc-done'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
+}
+
+function renderList(status, tbodyId, cntId) {
+  const data = cases.filter(x=>x.status===status);
+  const el = document.getElementById(cntId); if(el)el.textContent=data.length+' รายการ';
+  fillTbody(tbodyId, data);
+}
+
+function filterList(status, siId, spId, scId) {
+  const q = (document.getElementById(siId).value||'').toLowerCase();
+  const pl = document.getElementById(spId).value;
+  const cd = document.getElementById(scId).value;
+  let data = cases.filter(x=>x.status===status);
+  if(q) data = data.filter(x=>['invoiceNo','orderNo','tracking','ccNo'].some(k=>(x[k]||'').toLowerCase().includes(q)));
+  if(pl) data = data.filter(x=>x.platform===pl);
+  if(cd) data = data.filter(x=>x.condition===cd);
+  const tbodyMap = {'รอพิจารณา':'tbody-pending','รอทำรับคืน':'tbody-proc','ส่งสต็อกแล้ว':'tbody-done'};
+  fillTbody(tbodyMap[status], data);
+}
+
+function fillTbody(id, data) {
+  const el = document.getElementById(id); if(!el)return;
+  if(!data.length){el.innerHTML=`<tr><td colspan="7"><div class="no-data"><i class="ti ti-search-off"></i>ไม่พบข้อมูล</div></td></tr>`;return;}
+  el.innerHTML = data.map(r=>`<tr>
+    <td style="font-weight:600;color:var(--s600);font-family:var(--mono);font-size:10px">${r.invoiceNo}</td>
+    <td><span class="ptag">${r.platform.replace('_HUAWEI','')}</span></td>
+    <td style="color:var(--tm)">${fmt(r.receivedDate)}</td>
+    <td>${r.condition||'—'}</td>
+    <td style="color:var(--tm)">${r.tracking||'—'}</td>
+    <td><span class="badge ${bcls(r.status)}">${r.status}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-xs" onclick="openViewModal('${r.id}')"><i class="ti ti-eye"></i></button>
+      <button class="btn btn-ghost btn-xs" onclick="openEditForm('${r.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-primary btn-xs" onclick="openTicketModal('${r.id}')"><i class="ti ti-ticket"></i></button>
+      ${r.status!=='ส่งสต็อกแล้ว'?`<button class="btn btn-success btn-xs" onclick="advanceStatus('${r.id}')"><i class="ti ti-arrow-right"></i></button>`:''}
+      <button class="btn btn-danger btn-xs" onclick="deleteCase('${r.id}')"><i class="ti ti-trash"></i></button>
+    </td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════
+//  CASE OPERATIONS
+// ═══════════════════════════════════════
+function resetForm() {
+  editId = null; currentImages = []; currentSigData = null;
+  document.getElementById('form-title').innerHTML = '<i class="ti ti-file-plus"></i> กรอกข้อมูลรับคืนสินค้า';
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f-invoice').value='';
+  document.getElementById('f-platform').value='TIKTOK_HUAWEI';
+  document.getElementById('f-order').value='';
+  document.getElementById('f-condition').value='ยังไม่ได้แกะใช้งาน';
+  document.getElementById('f-carrier').value='J&T';
+  document.getElementById('f-tracking').value='';
+  document.getElementById('f-cc').value='';
+  document.getElementById('f-reason').value='ตีกลับจากขนส่ง';
+  document.getElementById('f-remark').value='';
+  document.getElementById('f-status').value='รอพิจารณา';
+  document.getElementById('f-stockdate').value='';
+  document.getElementById('img-preview').innerHTML='';
+  document.getElementById('sig-preview').innerHTML='';
+  document.getElementById('clear-sig-btn').style.display='none';
+}
+
+function openEditForm(id) {
+  const r = cases.find(x=>x.id===id); if(!r)return;
+  editId = r.id; currentImages = r.images||[]; currentSigData = r.signature||null;
+  showPage('form');
+  document.getElementById('form-title').innerHTML = '<i class="ti ti-edit"></i> แก้ไขข้อมูลเคส';
+  document.getElementById('f-date').value = r.receivedDate||'';
+  document.getElementById('f-invoice').value = r.invoiceNo||'';
+  document.getElementById('f-platform').value = r.platform||'TIKTOK_HUAWEI';
+  document.getElementById('f-order').value = r.orderNo||'';
+  document.getElementById('f-condition').value = r.condition||'ยังไม่ได้แกะใช้งาน';
+  document.getElementById('f-carrier').value = r.carrier||'J&T';
+  document.getElementById('f-tracking').value = r.tracking||'';
+  document.getElementById('f-cc').value = r.ccNo||'';
+  document.getElementById('f-reason').value = r.reason||'ตีกลับจากขนส่ง';
+  document.getElementById('f-remark').value = r.remark||'';
+  document.getElementById('f-status').value = r.status||'รอพิจารณา';
+  document.getElementById('f-stockdate').value = r.stockDate||'';
+  renderImgPreview();
+  if(currentSigData){
+    document.getElementById('sig-preview').innerHTML=`<img src="${currentSigData}" style="height:65px;border:0.5px solid var(--s100);border-radius:7px">`;
+    document.getElementById('clear-sig-btn').style.display='inline-flex';
+  }
+}
+
+function saveCase() {
+  const inv = (document.getElementById('f-invoice').value||'').trim();
+  const dt = document.getElementById('f-date').value;
+  if(!inv||!dt){alert('กรุณากรอก Invoice No. และวันที่รับสินค้า'); return;}
+  const item = {
+    id: editId||('c'+Date.now()),
+    createdAt: editId?((cases.find(x=>x.id===editId)||{}).createdAt||new Date().toISOString()):new Date().toISOString(),
+    receivedDate:dt, invoiceNo:inv,
+    platform:document.getElementById('f-platform').value,
+    orderNo:document.getElementById('f-order').value,
+    condition:document.getElementById('f-condition').value,
+    carrier:document.getElementById('f-carrier').value,
+    tracking:document.getElementById('f-tracking').value,
+    ccNo:document.getElementById('f-cc').value,
+    reason:document.getElementById('f-reason').value,
+    remark:document.getElementById('f-remark').value,
+    status:document.getElementById('f-status').value,
+    stockDate:document.getElementById('f-stockdate').value,
+    images:currentImages, signature:currentSigData
+  };
+  if(editId) cases = cases.map(x=>x.id===editId?item:x);
+  else cases.push(item);
+  save(); editId=null; currentImages=[]; currentSigData=null;
+  showPage('dash');
+}
+
+function deleteCase(id) {
+  if(!confirm('ลบรายการนี้?')) return;
+  cases = cases.filter(x=>x.id!==id);
+  save();
+  const active = document.querySelector('.page.active');
+  if(active) { const pg = active.id.replace('page-',''); showPage(pg); }
+}
+
+function advanceStatus(id) {
+  const r = cases.find(x=>x.id===id); if(!r)return;
+  if(r.status==='รอพิจารณา') r.status='รอทำรับคืน';
+  else if(r.status==='รอทำรับคืน'){r.status='ส่งสต็อกแล้ว';r.stockDate=new Date().toISOString().slice(0,10);}
+  save();
+  const active = document.querySelector('.page.active');
+  if(active) { const pg = active.id.replace('page-',''); showPage(pg); }
+}
+
+// ═══════════════════════════════════════
+//  IMAGES
+// ═══════════════════════════════════════
+function handleImages(e) {
+  Array.from(e.target.files).forEach(f=>{
+    const r = new FileReader();
+    r.onload = ev => { currentImages.push(ev.target.result); renderImgPreview(); };
+    r.readAsDataURL(f);
+  });
+}
+function removeImage(i) { currentImages.splice(i,1); renderImgPreview(); }
+function renderImgPreview() {
+  document.getElementById('img-preview').innerHTML = currentImages.map((img,i)=>`
+    <div class="img-thumb-wrap">
+      <img src="${img}" class="img-thumb">
+      <button class="img-rm" onclick="removeImage(${i})">×</button>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+//  SIGNATURE
+// ═══════════════════════════════════════
+function openSigModal(target) {
+  currentSigTarget = target;
+  document.getElementById('modal-sig').classList.add('open');
+  setTimeout(()=>{
+    sigCanvas = document.getElementById('sig-canvas');
+    sigCtx = sigCanvas.getContext('2d');
+    sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+    sigCtx.strokeStyle='#0F6E82'; sigCtx.lineWidth=2; sigCtx.lineCap='round'; sigCtx.lineJoin='round';
+    function getPos(e){const rect=sigCanvas.getBoundingClientRect();const sx=sigCanvas.width/rect.width,sy=sigCanvas.height/rect.height;const src=e.touches?e.touches[0]:e;return{x:(src.clientX-rect.left)*sx,y:(src.clientY-rect.top)*sy};}
+    sigCanvas.onmousedown=sigCanvas.ontouchstart=e=>{e.preventDefault();drawing=true;const p=getPos(e);lx=p.x;ly=p.y;};
+    sigCanvas.onmousemove=sigCanvas.ontouchmove=e=>{e.preventDefault();if(!drawing)return;const p=getPos(e);sigCtx.beginPath();sigCtx.moveTo(lx,ly);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();lx=p.x;ly=p.y;};
+    sigCanvas.onmouseup=sigCanvas.ontouchend=()=>{drawing=false;};
+  },80);
+}
+function clearSigCanvas(){if(sigCtx)sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);}
+function saveSig(){
+  currentSigData = sigCanvas.toDataURL('image/png');
+  closeModal('modal-sig');
+  document.getElementById('sig-preview').innerHTML = `<img src="${currentSigData}" style="height:65px;border:0.5px solid var(--s100);border-radius:7px">`;
+  document.getElementById('clear-sig-btn').style.display='inline-flex';
+}
+function clearSig(){currentSigData=null;document.getElementById('sig-preview').innerHTML='';document.getElementById('clear-sig-btn').style.display='none';}
+
+// ═══════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openViewModal(id) {
+  const r = cases.find(x=>x.id===id); if(!r)return;
+  document.getElementById('modal-view-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      ${[['Invoice No.',r.invoiceNo,'mono'],['Platform',r.platform,''],['วันที่รับสินค้า',fmt(r.receivedDate),''],['Order Number',r.orderNo,''],['สภาพสินค้า',r.condition,''],['ขนส่ง',r.carrier,''],['Tracking No.',r.tracking,'mono'],['No. CC/CCC',r.ccNo,''],['เหตุผล',r.reason,''],['วันที่ส่งสต็อก',fmt(r.stockDate),'']].map(([k,v,cls])=>`
+      <div style="padding:7px 0;border-bottom:0.5px solid var(--cream2)">
+        <div style="font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">${k}</div>
+        <div style="font-size:12px;font-weight:500;font-family:${cls==='mono'?'var(--mono)':'var(--font)'}">${v||'—'}</div>
+      </div>`).join('')}
+      <div style="grid-column:1/-1;padding:7px 0;border-bottom:0.5px solid var(--cream2)">
+        <div style="font-size:9px;color:var(--tl);margin-bottom:3px">สถานะ</div>
+        <span class="badge ${bcls(r.status)}">${r.status}</span>
+      </div>
+      ${r.remark?`<div style="grid-column:1/-1;padding:7px 0;border-bottom:0.5px solid var(--cream2)"><div style="font-size:9px;color:var(--tl);margin-bottom:2px">Remark</div><div style="font-size:11px;line-height:1.5">${r.remark}</div></div>`:''}
+      ${(r.images||[]).length?`<div style="grid-column:1/-1;padding-top:9px"><div style="font-size:9px;color:var(--tl);margin-bottom:5px">รูปภาพแนบ</div><div style="display:flex;gap:7px;flex-wrap:wrap">${r.images.map(img=>`<img src="${img}" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:0.5px solid var(--s100)">`).join('')}</div></div>`:''}
+      ${r.signature?`<div style="grid-column:1/-1;padding-top:9px"><div style="font-size:9px;color:var(--tl);margin-bottom:4px">ลายเซ็น</div><img src="${r.signature}" style="height:62px;border:0.5px solid var(--s100);border-radius:7px"></div>`:''}
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-view');openEditForm('${r.id}')"><i class="ti ti-edit"></i> แก้ไข</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-view');openTicketModal('${r.id}')"><i class="ti ti-ticket"></i> ดูตั๋ว</button>
+    </div>`;
+  document.getElementById('modal-view').classList.add('open');
+}
+
+function openTicketModal(id) {
+  const r = cases.find(x=>x.id===id); if(!r)return;
+  document.getElementById('modal-ticket-content').innerHTML = `
+    <div class="ticket">
+      <div class="ticket-band">
+        <div style="font-size:9px;opacity:.65;margin-bottom:3px;letter-spacing:1px">RETURN TICKET</div>
+        <div class="ticket-inv">${r.invoiceNo}</div>
+        <div class="ticket-plat">${r.platform}</div>
+        <div style="margin-top:8px"><span style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:20px;font-size:10px">${r.status}</span></div>
+      </div>
+      ${[['วันที่รับสินค้า',fmt(r.receivedDate)],['Order Number',r.orderNo],['สภาพสินค้า',r.condition],['ขนส่ง',r.carrier],['Tracking No.',r.tracking],['No. CC/CCC',r.ccNo],['เหตุผล',r.reason],['วันที่ส่งสต็อก',fmt(r.stockDate)]].map(([k,v])=>`<div class="ticket-row"><span class="ticket-key">${k}</span><span class="ticket-val">${v||'—'}</span></div>`).join('')}
+      ${r.remark?`<div class="ticket-remark">${r.remark}</div>`:''}
+      ${r.signature?`<div class="ticket-sig"><div style="font-size:9px;color:var(--tl);margin-bottom:3px">ลายเซ็น</div><img src="${r.signature}"></div>`:''}
+      <div class="ticket-footer">Huawei Marketplace Return Management System<br>${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>`;
+  document.getElementById('modal-ticket').classList.add('open');
+}
+
+// ═══════════════════════════════════════
+//  EXPORT CSV
+// ═══════════════════════════════════════
+function exportCSV(filterStatus) {
+  const data = filterStatus ? cases.filter(x=>x.status===filterStatus) : cases;
+  const cols = ['ลำดับ','Invoice No.','Platform','วันที่รับสินค้า','Order Number','สภาพสินค้า','ขนส่ง','Tracking No.','No. CC/CCC','เหตุผล','Remark','สถานะ','วันที่ส่งสต็อก'];
+  const rows = data.map((r,i)=>[i+1,r.invoiceNo,r.platform,r.receivedDate,r.orderNo,r.condition,r.carrier,r.tracking,r.ccNo,r.reason,r.remark,r.status,r.stockDate]);
+  const esc = v => '"'+(String(v||'').replace(/"/g,'""'))+'"';
+  const csv = '\uFEFF'+[cols,...rows].map(row=>row.map(esc).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `huawei_return${filterStatus?'_'+filterStatus:''}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+window.addEventListener('click', e => {
+  if(e.target.classList.contains('modal-backdrop')) e.target.classList.remove('open');
+});
+populateFilters();
+updateSideCounts();
+renderDash();
+</script>
+</body>
+</html>
