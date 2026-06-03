@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --s50:#EBF7F9;--s100:#C2EAF1;--s200:#87D4E3;--s300:#4BBDD3;
@@ -564,6 +565,8 @@ let firebaseAnalytics = null;
 if (firebaseApp && firebase.analytics && location.protocol !== 'file:') {
   firebaseAnalytics = firebase.analytics();
 }
+const firebaseDb = firebaseApp && firebase.firestore ? firebase.firestore() : null;
+const CASES_COLLECTION = 'return_cases';
 
 // ═══════════════════════════════════════
 //  DATA
@@ -596,14 +599,59 @@ const PF_COLORS = ['#1FA3BE','#4BBDD3','#0F6E82','#87D4E3'];
 const TREND_COLORS = ['#1FA3BE','#E6A817','#D85A30','#534AB7','#0F6E56','#D4537E','#888780','#639922'];
 const TREND_DASH = [[],[5,3],[2,2],[8,2],[4,4],[6,2,2,2],[],[3,1]];
 
-let cases = JSON.parse(localStorage.getItem('hrms_v4') || 'null');
-if (!cases) { cases = JSON.parse(JSON.stringify(SEED)); localStorage.setItem('hrms_v4', JSON.stringify(cases)); }
+let cases = JSON.parse(localStorage.getItem('hrms_v4') || 'null') || JSON.parse(JSON.stringify(SEED));
 
 let editId = null, currentImages = [], currentSigData = null, currentSigTarget = null;
 let sigCanvas, sigCtx, drawing = false, lx = 0, ly = 0;
 let chartReg = {};
 
-function save() { localStorage.setItem('hrms_v4', JSON.stringify(cases)); }
+async function loadCases() {
+  if (!firebaseDb) {
+    localStorage.setItem('hrms_v4', JSON.stringify(cases));
+    return;
+  }
+
+  try {
+    const snap = await firebaseDb.collection(CASES_COLLECTION).orderBy('createdAt', 'asc').get();
+    if (snap.empty) {
+      cases = JSON.parse(JSON.stringify(SEED));
+      await saveAllCasesToFirestore();
+    } else {
+      cases = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+    localStorage.setItem('hrms_v4', JSON.stringify(cases));
+  } catch (err) {
+    console.error('Firestore load failed:', err);
+    alert('โหลดข้อมูลจาก Firebase ไม่ได้: ' + err.message + '\nระบบจะแสดงข้อมูลสำรองในเครื่องแทน');
+  }
+}
+
+async function saveAllCasesToFirestore() {
+  if (!firebaseDb) return;
+  const batch = firebaseDb.batch();
+  cases.forEach(item => {
+    const { id, ...data } = item;
+    batch.set(firebaseDb.collection(CASES_COLLECTION).doc(id), data);
+  });
+  await batch.commit();
+}
+
+async function saveCaseToFirestore(item) {
+  if (!firebaseDb) return;
+  const { id, ...data } = item;
+  await firebaseDb.collection(CASES_COLLECTION).doc(id).set(data);
+}
+
+async function deleteCaseFromFirestore(id) {
+  if (!firebaseDb) return;
+  await firebaseDb.collection(CASES_COLLECTION).doc(id).delete();
+}
+
+function save(item) {
+  localStorage.setItem('hrms_v4', JSON.stringify(cases));
+  if (!firebaseDb) return Promise.resolve();
+  return item ? saveCaseToFirestore(item) : saveAllCasesToFirestore();
+}
 
 // ═══════════════════════════════════════
 //  HELPERS
@@ -930,7 +978,7 @@ function openEditForm(id) {
   }
 }
 
-function saveCase() {
+async function saveCase() {
   const inv = (document.getElementById('f-invoice').value||'').trim();
   const dt = document.getElementById('f-date').value;
   if(!inv||!dt){alert('กรุณากรอก Invoice No. และวันที่รับสินค้า'); return;}
@@ -952,23 +1000,43 @@ function saveCase() {
   };
   if(editId) cases = cases.map(x=>x.id===editId?item:x);
   else cases.push(item);
-  save(); editId=null; currentImages=[]; currentSigData=null;
+  try {
+    await save(item);
+  } catch (err) {
+    console.error('Firestore save failed:', err);
+    alert('บันทึกเข้า Firebase ไม่สำเร็จ: ' + err.message);
+    return;
+  }
+  editId=null; currentImages=[]; currentSigData=null;
   showPage('dash');
 }
 
-function deleteCase(id) {
+async function deleteCase(id) {
   if(!confirm('ลบรายการนี้?')) return;
   cases = cases.filter(x=>x.id!==id);
-  save();
+  try {
+    localStorage.setItem('hrms_v4', JSON.stringify(cases));
+    await deleteCaseFromFirestore(id);
+  } catch (err) {
+    console.error('Firestore delete failed:', err);
+    alert('ลบข้อมูลใน Firebase ไม่สำเร็จ: ' + err.message);
+    return;
+  }
   const active = document.querySelector('.page.active');
   if(active) { const pg = active.id.replace('page-',''); showPage(pg); }
 }
 
-function advanceStatus(id) {
+async function advanceStatus(id) {
   const r = cases.find(x=>x.id===id); if(!r)return;
   if(r.status==='รอพิจารณา') r.status='รอทำรับคืน';
   else if(r.status==='รอทำรับคืน'){r.status='ส่งสต็อกแล้ว';r.stockDate=new Date().toISOString().slice(0,10);}
-  save();
+  try {
+    await save(r);
+  } catch (err) {
+    console.error('Firestore status update failed:', err);
+    alert('อัปเดตสถานะใน Firebase ไม่สำเร็จ: ' + err.message);
+    return;
+  }
   const active = document.querySelector('.page.active');
   if(active) { const pg = active.id.replace('page-',''); showPage(pg); }
 }
@@ -1086,9 +1154,13 @@ function exportCSV(filterStatus) {
 window.addEventListener('click', e => {
   if(e.target.classList.contains('modal-backdrop')) e.target.classList.remove('open');
 });
-populateFilters();
-updateSideCounts();
-renderDash();
+async function initApp() {
+  await loadCases();
+  populateFilters();
+  updateSideCounts();
+  renderDash();
+}
+initApp();
 </script>
 </body>
 </html>
