@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -30,6 +31,32 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--cream);color:var(--td);font-size:13px;line-height:1.5}
+
+/* ── AUTH ── */
+.auth-wrap{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0A5165,#1589A0 60%,#1FA3BE)}
+.auth-card{background:var(--white);border-radius:var(--radius-xl);padding:26px 24px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(3,33,44,.35)}
+.auth-brand{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.auth-logo{background:var(--s500);border-radius:10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auth-title{font-size:15px;font-weight:600;color:var(--s700)}
+.auth-sub{font-size:10px;color:var(--tmu)}
+.auth-tabs{display:flex;background:var(--cream2);border-radius:20px;padding:3px;margin-bottom:16px}
+.auth-tab{flex:1;border:none;background:transparent;font-family:var(--font);font-size:12px;font-weight:500;color:var(--tmu);padding:7px;border-radius:20px;cursor:pointer;transition:.15s}
+.auth-tab.active{background:var(--white);color:var(--s600);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.auth-field{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+.auth-field label{font-size:10px;font-weight:600;color:var(--tmu);text-transform:uppercase;letter-spacing:.3px}
+.auth-field input,.auth-field select{font-size:13px;border:0.5px solid var(--s100);border-radius:var(--radius-sm);padding:9px 11px;background:var(--cream);color:var(--td);font-family:var(--font);width:100%;outline:none;transition:border-color .15s}
+.auth-field input:focus,.auth-field select:focus{border-color:var(--s300);background:var(--white)}
+.auth-btn{width:100%;justify-content:center;padding:10px;margin-top:4px}
+.auth-err{font-size:11px;color:#A32D2D;min-height:15px;margin-bottom:4px}
+.auth-note{font-size:10.5px;color:var(--info-txt);background:var(--info-bg);border:0.5px solid var(--s100);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:10px;line-height:1.5}
+.auth-foot{text-align:center;font-size:9px;color:var(--tl);margin-top:16px;line-height:1.5}
+
+/* ── USER MENU ── */
+.topbar-me{display:flex;align-items:center;gap:7px;color:#fff;background:rgba(255,255,255,.12);padding:4px 6px 4px 11px;border-radius:20px}
+.topbar-me .nm{font-size:11px;font-weight:500;line-height:1.15}
+.topbar-me .rl{font-size:9px;opacity:.7}
+.role-chip{font-size:8px;font-weight:600;padding:1px 7px;border-radius:20px;color:#fff}
+.perm-hide{display:none!important}
 
 /* ── SHELL ── */
 .shell{display:flex;flex-direction:column;height:100vh}
@@ -295,7 +322,59 @@ tbody tr:hover td{background:var(--s50)}
 </head>
 <body>
 
-<div class="shell">
+<!-- ═══ AUTH OVERLAY ═══ -->
+<div class="auth-wrap" id="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo"><svg width="26" height="26" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="4" width="11" height="13" rx="2" stroke="white" stroke-width="1.4" fill="none"/>
+        <path d="M8 4V3a2 2 0 0 1 4 0v1" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M5 9h7M5 12h5" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="15" cy="14" r="3.5" fill="white" fill-opacity="0.2" stroke="white" stroke-width="1.2"/>
+        <path d="M13.5 14l1 1 2-2" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg></div>
+      <div>
+        <div class="auth-title">Huawei Return Management</div>
+        <div class="auth-sub">ระบบจัดการรับคืนสินค้า Marketplace</div>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuth('login')">เข้าสู่ระบบ</button>
+      <button class="auth-tab" id="tab-reg" onclick="switchAuth('reg')">สมัครสมาชิก</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login">
+      <div class="auth-field"><label>ชื่อผู้ใช้ (Username)</label><input id="lg-user" autocomplete="username" placeholder="username"></div>
+      <div class="auth-field"><label>รหัสผ่าน</label><input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-err" id="lg-err"></div>
+      <button class="btn btn-primary auth-btn" onclick="doLogin()"><i class="ti ti-login"></i> เข้าสู่ระบบ</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="auth-reg" style="display:none">
+      <div class="auth-field"><label>ชื่อ-สกุล / ชื่อที่แสดง</label><input id="rg-name" placeholder="เช่น สมชาย ใจดี"></div>
+      <div class="auth-field"><label>ชื่อผู้ใช้ (Username)</label><input id="rg-user" autocomplete="off" placeholder="username (ห้ามซ้ำ)"></div>
+      <div class="auth-field"><label>บทบาท / แผนก</label>
+        <select id="rg-role">
+          <option value="sales">ฝ่ายขาย ECOM</option>
+          <option value="wh">คลังสินค้า</option>
+          <option value="ipqc">IPQC / Service</option>
+          <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+        </select>
+      </div>
+      <div class="auth-field"><label>รหัสผ่าน (อย่างน้อย 4 ตัว)</label><input id="rg-pass" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="auth-err" id="rg-err"></div>
+      <div class="auth-note" id="rg-first" style="display:none"><i class="ti ti-info-circle"></i> ยังไม่มีบัญชีในระบบ — บัญชีแรกจะถูกตั้งเป็น <b>ผู้ดูแลระบบ (Admin)</b> อัตโนมัติ</div>
+      <button class="btn btn-success auth-btn" onclick="doRegister()"><i class="ti ti-user-plus"></i> สร้างบัญชี</button>
+    </div>
+
+    <div class="auth-foot">บัญชีถูกจัดเก็บในเครื่องนี้ (localStorage) · “Return Today, Better Tomorrow”</div>
+  </div>
+</div>
+
+<div class="shell" id="app-shell" style="display:none">
   <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-logo"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -311,12 +390,13 @@ tbody tr:hover td{background:var(--s50)}
     </div>
     <div class="topbar-right no-print">
       <span class="topbar-date"><i class="ti ti-calendar-event"></i><span id="topbar-date"></span></span>
-      <span class="topbar-user"><i class="ti ti-user-circle"></i>
-        <input id="cur-user" list="user-list" placeholder="ชื่อผู้ใช้งาน" onchange="setUser(this.value)">
-        <datalist id="user-list"><option>ฝ่ายขาย ECOM</option><option>คลังสินค้า</option><option>IPQC / Service</option></datalist>
-      </span>
       <button class="btn btn-cream btn-sm" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> Export</button>
-      <button class="btn btn-cream btn-sm" onclick="showPage('form');resetForm()"><i class="ti ti-file-plus"></i> เคสใหม่</button>
+      <button class="btn btn-cream btn-sm" id="btn-newcase" onclick="showPage('form');resetForm()"><i class="ti ti-file-plus"></i> เคสใหม่</button>
+      <span class="topbar-me">
+        <i class="ti ti-user-circle" style="font-size:18px"></i>
+        <span><span class="nm" id="me-name">—</span><br><span class="rl" id="me-role"></span></span>
+        <button class="btn btn-cream btn-xs" onclick="logout()" title="ออกจากระบบ" style="margin-left:4px"><i class="ti ti-logout"></i></button>
+      </span>
     </div>
   </div>
   <div class="wave"></div>
@@ -334,6 +414,9 @@ tbody tr:hover td{background:var(--s50)}
       <div class="sb-item" id="nav-act" onclick="openCases('action')"><i class="ti ti-transfer"></i> ดำเนินการต่อ <span class="sb-badge" id="sb-act-cnt">0</span></div>
       <div class="sb-item" id="nav-wrong" onclick="openCases('wrong')"><i class="ti ti-alert-triangle"></i> ได้รับสินค้าผิด <span class="sb-badge alert" id="sb-wrong-cnt">0</span></div>
       <div class="sb-item" id="nav-form" onclick="showPage('form');resetForm()"><i class="ti ti-file-plus"></i> กรอกข้อมูล</div>
+      <div class="sb-item" id="nav-import" onclick="openImport()"><i class="ti ti-file-import"></i> นำเข้า Excel</div>
+      <div class="sb-section perm-admin">ผู้ดูแลระบบ</div>
+      <div class="sb-item perm-admin" id="nav-users" onclick="showPage('users')"><i class="ti ti-users"></i> จัดการผู้ใช้ <span class="sb-badge" id="sb-user-cnt">0</span></div>
       <div class="sb-bottom">
         <button class="btn btn-cream btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Export ทั้งหมด</button>
       </div>
@@ -480,6 +563,18 @@ tbody tr:hover td{background:var(--s50)}
         </div>
       </div>
 
+      <!-- ═══ USERS (admin) ═══ -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-users"></i> จัดการผู้ใช้ <span class="cnt-badge" id="cnt-users"></span>
+            <div class="card-actions"><button class="btn btn-success btn-sm" onclick="openNewUser()"><i class="ti ti-user-plus"></i> เพิ่มผู้ใช้</button></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr>
+            <th style="width:150px">ชื่อที่แสดง</th><th style="width:120px">Username</th><th style="width:130px">บทบาท</th><th style="width:110px">สร้างเมื่อ</th><th style="width:140px">จัดการ</th>
+          </tr></thead><tbody id="tbody-users"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- ═══ FORM ═══ -->
       <div class="page" id="page-form">
         <div class="card">
@@ -519,6 +614,9 @@ tbody tr:hover td{background:var(--s50)}
             </div>
             <div class="form-group"><div class="form-label">Tracking No. (เลขตีกลับ)</div><input class="form-input" type="text" id="f-tracking" placeholder="762493819706"></div>
             <div class="form-group"><div class="form-label">No. CC / CCC</div><input class="form-input" type="text" id="f-cc" placeholder="CCC482260501..."></div>
+            <div class="form-group"><div class="form-label">SKU</div><input class="form-input" type="text" id="f-sku" placeholder="HW-ON-..."></div>
+            <div class="form-group"><div class="form-label">จำนวน</div><input class="form-input" type="number" id="f-qty" min="1" placeholder="1"></div>
+            <div class="form-group"><div class="form-label">เลขที่บิล (PA/RO)</div><input class="form-input" type="text" id="f-pa" placeholder="PA...../RO....."></div>
             <div class="form-group full"><div class="form-label">เหตุผล</div>
               <select class="form-input" id="f-reason">
                 <option>ตีกลับจากขนส่ง</option><option>ยกเลิกก่อนออกจากคลัง</option><option>ยกเลิกก่อนจัดส่ง</option>
@@ -590,6 +688,49 @@ tbody tr:hover td{background:var(--s50)}
     <div class="modal-title">ตั๋วรับคืนสินค้า <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-ticket')"><i class="ti ti-x"></i></button></div>
     <div id="modal-ticket-content"></div>
     <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="window.print()"><i class="ti ti-printer"></i> พิมพ์ตั๋ว</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-import">
+  <div class="modal modal-lg">
+    <div class="modal-title">นำเข้าข้อมูลจาก Excel / CSV <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-import')"><i class="ti ti-x"></i></button></div>
+    <div class="upload-area" onclick="document.getElementById('imp-file').click()">
+      <i class="ti ti-file-spreadsheet" style="font-size:24px;color:var(--tl);display:block;margin-bottom:4px"></i>
+      <div style="font-size:12px;color:var(--tmu)" id="imp-fname">คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv</div>
+    </div>
+    <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="impLoadFile(event)">
+
+    <div id="imp-config" style="display:none;margin-top:12px">
+      <div class="search-row">
+        <div class="form-group" style="flex:1"><div class="form-label">เลือก Sheet</div><select class="form-input" id="imp-sheet" onchange="impPickSheet()"></select></div>
+        <div class="form-group" style="flex:0 0 130px"><div class="form-label">แถวหัวตาราง</div><select class="form-input" id="imp-headrow" onchange="impPickSheet()"></select></div>
+      </div>
+      <div class="form-label" style="margin:8px 0 4px">จับคู่คอลัมน์ (ปรับได้)</div>
+      <div class="table-wrap" style="max-height:230px;overflow-y:auto"><table><thead><tr><th style="width:150px">ฟิลด์ในระบบ</th><th>คอลัมน์จากไฟล์</th></tr></thead><tbody id="imp-map"></tbody></table></div>
+      <div class="search-row" style="margin-top:10px">
+        <div class="form-group" style="flex:1"><div class="form-label">สถานะเริ่มต้นของรายการที่นำเข้า</div><select class="form-input" id="imp-status"></select></div>
+        <div class="form-group" style="flex:1"><div class="form-label">Platform (กรณีเว้นว่าง)</div><select class="form-input" id="imp-platfb"><option>TIKTOK_HUAWEI</option><option>SHOPEE_HUAWEI</option><option>Lazada_HUAWEI</option><option>HUAWEI_Web</option></select></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tm);margin-top:6px"><input type="checkbox" id="imp-dedup" checked style="width:14px;height:14px;accent-color:var(--s500)"> ข้ามรายการที่ Invoice/Order ซ้ำกับที่มีอยู่แล้ว</label>
+      <div id="imp-preview" style="font-size:11px;color:var(--tmu);margin-top:8px"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-import')">ยกเลิก</button>
+        <button class="btn btn-success btn-sm" onclick="impRun()"><i class="ti ti-database-import"></i> นำเข้าข้อมูล</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-user">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title" id="user-modal-title">เพิ่มผู้ใช้ <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-user')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="u-editkey">
+    <div class="auth-field"><label>ชื่อที่แสดง</label><input id="u-name" class="form-input"></div>
+    <div class="auth-field"><label>Username</label><input id="u-user" class="form-input"></div>
+    <div class="auth-field"><label>บทบาท</label><select id="u-role" class="form-input"><option value="sales">ฝ่ายขาย ECOM</option><option value="wh">คลังสินค้า</option><option value="ipqc">IPQC / Service</option><option value="admin">ผู้ดูแลระบบ (Admin)</option></select></div>
+    <div class="auth-field"><label id="u-pass-lbl">รหัสผ่าน</label><input id="u-pass" type="password" class="form-input" placeholder="เว้นว่างไว้ = ไม่เปลี่ยน"></div>
+    <div class="auth-err" id="u-err"></div>
+    <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="closeModal('modal-user')">ยกเลิก</button><button class="btn btn-primary btn-sm" onclick="saveUser()"><i class="ti ti-device-floppy"></i> บันทึก</button></div>
   </div>
 </div>
 
@@ -683,12 +824,152 @@ let editId = null, currentImages = [], currentSigData = null, currentSigTarget =
 let sigCanvas, sigCtx, drawing = false, lx = 0, ly = 0;
 let chartReg = {};
 let caseFilter = 'all';
-let currentUser = localStorage.getItem('hrms_user') || '';
 let formRole = 'all';
 
-function setUser(v){ currentUser = (v||'').trim(); localStorage.setItem('hrms_user', currentUser); }
-function actor(){ return currentUser || 'ไม่ระบุผู้ใช้'; }
+// ═══════════════════════════════════════
+//  AUTH & ROLES (self-contained, localStorage)
+// ═══════════════════════════════════════
+const ROLES = {
+  admin:{label:'ผู้ดูแลระบบ (Admin)', color:'#791F1F', caps:{create:1,editAll:1,editTest:1,del:1,users:1}, formRole:'all'},
+  sales:{label:'ฝ่ายขาย ECOM',      color:'#1589A0', caps:{create:1,editAll:1,editTest:1,del:0,users:0}, formRole:'sales'},
+  wh:   {label:'คลังสินค้า',          color:'#0F6E82', caps:{create:1,editAll:1,editTest:1,del:0,users:0}, formRole:'wh'},
+  ipqc: {label:'IPQC / Service',     color:'#534AB7', caps:{create:0,editAll:0,editTest:1,del:0,users:0}, formRole:'ipqc'}
+};
+let me = null; // {username,name,role}
+function loadUsers(){ try { return JSON.parse(localStorage.getItem('hrms_users')||'[]'); } catch { return []; } }
+function saveUsers(u){ localStorage.setItem('hrms_users', JSON.stringify(u)); }
+async function sha256(s){
+  try { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  catch { let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return 'x'+(h>>>0).toString(16); }
+}
+function cap(k){ return me && ROLES[me.role] && ROLES[me.role].caps[k]; }
+function actor(){ return me ? me.name : 'ไม่ระบุผู้ใช้'; }
 function logHistory(r, action){ if(!r.history) r.history=[]; r.history.push({at:new Date().toISOString(), by:actor(), action}); }
+
+function switchAuth(t){
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-reg').classList.toggle('active', t==='reg');
+  document.getElementById('auth-login').style.display = t==='login'?'':'none';
+  document.getElementById('auth-reg').style.display = t==='reg'?'':'none';
+}
+async function doRegister(){
+  const name=(document.getElementById('rg-name').value||'').trim();
+  const user=(document.getElementById('rg-user').value||'').trim().toLowerCase();
+  let role=document.getElementById('rg-role').value;
+  const pass=document.getElementById('rg-pass').value||'';
+  const err=document.getElementById('rg-err'); err.textContent='';
+  const users=loadUsers();
+  if(!name||!user){ err.textContent='กรุณากรอกชื่อและ username'; return; }
+  if(pass.length<4){ err.textContent='รหัสผ่านอย่างน้อย 4 ตัว'; return; }
+  if(users.some(u=>u.username===user)){ err.textContent='username นี้มีอยู่แล้ว'; return; }
+  if(users.length===0) role='admin'; // first account = admin
+  users.push({username:user, name, role, pass:await sha256(pass), createdAt:new Date().toISOString()});
+  saveUsers(users);
+  err.style.color='#0F6E56'; err.textContent='สร้างบัญชีสำเร็จ — กำลังเข้าสู่ระบบ...';
+  setTimeout(()=>{ startSession({username:user,name,role}); }, 500);
+}
+async function doLogin(){
+  const user=(document.getElementById('lg-user').value||'').trim().toLowerCase();
+  const pass=document.getElementById('lg-pass').value||'';
+  const err=document.getElementById('lg-err'); err.textContent='';
+  const u=loadUsers().find(x=>x.username===user);
+  if(!u || u.pass!==await sha256(pass)){ err.textContent='username หรือรหัสผ่านไม่ถูกต้อง'; return; }
+  startSession({username:u.username,name:u.name,role:u.role});
+}
+function startSession(sess){
+  me=sess; localStorage.setItem('hrms_session', JSON.stringify(sess));
+  document.getElementById('auth-wrap').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  document.getElementById('me-name').textContent=me.name;
+  const rm=ROLES[me.role]||ROLES.sales;
+  document.getElementById('me-role').innerHTML=`<span class="role-chip" style="background:${rm.color}">${rm.label}</span>`;
+  formRole = rm.formRole;
+  applyPerms();
+  bootApp();
+}
+function logout(){ localStorage.removeItem('hrms_session'); me=null; location.reload(); }
+function applyPerms(){
+  const showNew = !!cap('create');
+  document.getElementById('btn-newcase').style.display = showNew?'':'none';
+  document.getElementById('nav-form').style.display = showNew?'':'none';
+  document.getElementById('nav-import').style.display = showNew?'':'none';
+  document.querySelectorAll('.perm-admin').forEach(el=>el.style.display = cap('users')?'':'none');
+}
+function checkSession(){
+  try { const s=JSON.parse(localStorage.getItem('hrms_session')||'null');
+    if(s && loadUsers().some(u=>u.username===s.username)){ startSession(s); return true; } } catch {}
+  // show login; toggle "first account" note
+  const first = loadUsers().length===0;
+  document.getElementById('rg-first').style.display = first?'':'none';
+  if(first) switchAuth('reg');
+  return false;
+}
+
+// ── USERS PAGE (admin) ──
+function renderUsers(){
+  const users=loadUsers();
+  document.getElementById('cnt-users').textContent=users.length+' บัญชี';
+  const sc=document.getElementById('sb-user-cnt'); if(sc)sc.textContent=users.length;
+  const el=document.getElementById('tbody-users');
+  el.innerHTML = users.map(u=>{ const rm=ROLES[u.role]||ROLES.sales;
+    return `<tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="font-family:var(--mono);font-size:10px">${u.username}</td>
+      <td><span class="role-chip" style="background:${rm.color}">${rm.label}</span></td>
+      <td style="color:var(--tm)">${fmt(u.createdAt)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-xs" onclick="openEditUser('${u.username}')"><i class="ti ti-edit"></i> แก้ไข</button>
+        ${u.username===me.username?'':`<button class="btn btn-danger btn-xs" onclick="deleteUser('${u.username}')"><i class="ti ti-trash"></i></button>`}
+      </td></tr>`;
+  }).join('');
+}
+function openNewUser(){
+  document.getElementById('user-modal-title').firstChild.textContent='เพิ่มผู้ใช้ ';
+  document.getElementById('u-editkey').value='';
+  document.getElementById('u-name').value=''; document.getElementById('u-user').value='';
+  document.getElementById('u-role').value='sales'; document.getElementById('u-pass').value='';
+  document.getElementById('u-user').disabled=false;
+  document.getElementById('u-pass-lbl').textContent='รหัสผ่าน';
+  document.getElementById('u-err').textContent='';
+  document.getElementById('modal-user').classList.add('open');
+}
+function openEditUser(username){
+  const u=loadUsers().find(x=>x.username===username); if(!u)return;
+  document.getElementById('user-modal-title').firstChild.textContent='แก้ไขผู้ใช้ ';
+  document.getElementById('u-editkey').value=u.username;
+  document.getElementById('u-name').value=u.name; document.getElementById('u-user').value=u.username;
+  document.getElementById('u-role').value=u.role; document.getElementById('u-pass').value='';
+  document.getElementById('u-user').disabled=true;
+  document.getElementById('u-pass-lbl').textContent='รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)';
+  document.getElementById('u-err').textContent='';
+  document.getElementById('modal-user').classList.add('open');
+}
+async function saveUser(){
+  const key=document.getElementById('u-editkey').value;
+  const name=(document.getElementById('u-name').value||'').trim();
+  const user=(document.getElementById('u-user').value||'').trim().toLowerCase();
+  const role=document.getElementById('u-role').value;
+  const pass=document.getElementById('u-pass').value||'';
+  const err=document.getElementById('u-err'); err.textContent='';
+  if(!name||!user){ err.textContent='กรอกชื่อและ username'; return; }
+  let users=loadUsers();
+  if(key){ // edit
+    const u=users.find(x=>x.username===key); if(!u)return;
+    u.name=name; u.role=role; if(pass){ if(pass.length<4){err.textContent='รหัสผ่านอย่างน้อย 4 ตัว';return;} u.pass=await sha256(pass); }
+    if(key===me.username){ me.name=name; me.role=role; localStorage.setItem('hrms_session',JSON.stringify(me)); }
+  } else { // new
+    if(users.some(x=>x.username===user)){ err.textContent='username นี้มีอยู่แล้ว'; return; }
+    if(pass.length<4){ err.textContent='รหัสผ่านอย่างน้อย 4 ตัว'; return; }
+    users.push({username:user,name,role,pass:await sha256(pass),createdAt:new Date().toISOString()});
+  }
+  saveUsers(users); closeModal('modal-user'); renderUsers();
+  if(key===me.username){ startSession(me); } // refresh perms/label
+}
+function deleteUser(username){
+  if(username===me.username){ alert('ลบบัญชีตัวเองไม่ได้'); return; }
+  if(!confirm('ลบผู้ใช้ '+username+' ?')) return;
+  saveUsers(loadUsers().filter(u=>u.username!==username)); renderUsers();
+}
 
 const ROLE_SECS = {
   all:  ['main','ipqc','status','media'],
@@ -718,6 +999,9 @@ function normaliseCases() {
     if (o.testResult === undefined) o.testResult = '';
     if (o.testNote === undefined) o.testNote = '';
     if (o.serial === undefined) o.serial = '';
+    if (o.sku === undefined) o.sku = '';
+    if (o.qty === undefined) o.qty = '';
+    if (o.paNo === undefined) o.paNo = '';
     if (!Array.isArray(o.history)) o.history = [];
     if (!o.updatedAt) o.updatedAt = o.createdAt;
     return o;
@@ -808,13 +1092,14 @@ function showPage(page) {
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
   const p = document.getElementById('page-'+page);
   if (p) p.classList.add('active');
-  const navMap = {dash:'nav-dash',flow:'nav-flow',trend:'nav-trend',cases:'nav-cases',form:'nav-form'};
+  const navMap = {dash:'nav-dash',flow:'nav-flow',trend:'nav-trend',cases:'nav-cases',form:'nav-form',users:'nav-users'};
   const n = document.getElementById(navMap[page]);
   if (n) n.classList.add('active');
   if (page==='dash') renderDash();
   else if (page==='flow') renderFlow();
   else if (page==='trend') renderTrend();
   else if (page==='cases') renderCases();
+  else if (page==='users') renderUsers();
   updateSideCounts();
   populateFilters();
 }
@@ -1131,9 +1416,9 @@ function renderCases() {
     <td>${statusSelectHTML(r)}</td>
     <td style="white-space:nowrap">
       <button class="btn btn-ghost btn-xs" onclick="openViewModal('${r.id}')"><i class="ti ti-eye"></i></button>
-      <button class="btn btn-ghost btn-xs" onclick="openEditForm('${r.id}')"><i class="ti ti-edit"></i></button>
+      ${(cap('editAll')||cap('editTest'))?`<button class="btn btn-ghost btn-xs" onclick="openEditForm('${r.id}')"><i class="ti ti-edit"></i></button>`:''}
       <button class="btn btn-primary btn-xs" onclick="openTicketModal('${r.id}')"><i class="ti ti-ticket"></i></button>
-      <button class="btn btn-danger btn-xs" onclick="deleteCase('${r.id}')"><i class="ti ti-trash"></i></button>
+      ${cap('del')?`<button class="btn btn-danger btn-xs" onclick="deleteCase('${r.id}')"><i class="ti ti-trash"></i></button>`:''}
     </td>
   </tr>`).join('');
 }
@@ -1173,6 +1458,9 @@ function resetForm() {
   document.getElementById('f-carrier').value='J&T';
   document.getElementById('f-tracking').value='';
   document.getElementById('f-cc').value='';
+  document.getElementById('f-sku').value='';
+  document.getElementById('f-qty').value='';
+  document.getElementById('f-pa').value='';
   document.getElementById('f-reason').value='ตีกลับจากขนส่ง';
   document.getElementById('f-remark').value='';
   document.getElementById('f-testresult').value='';
@@ -1199,6 +1487,9 @@ function openEditForm(id) {
   document.getElementById('f-carrier').value = r.carrier||'J&T';
   document.getElementById('f-tracking').value = r.tracking||'';
   document.getElementById('f-cc').value = r.ccNo||'';
+  document.getElementById('f-sku').value = r.sku||'';
+  document.getElementById('f-qty').value = r.qty||'';
+  document.getElementById('f-pa').value = r.paNo||'';
   document.getElementById('f-reason').value = r.reason||'ตีกลับจากขนส่ง';
   document.getElementById('f-remark').value = r.remark||'';
   document.getElementById('f-testresult').value = r.testResult||'';
@@ -1227,6 +1518,9 @@ async function saveCase() {
     carrier:document.getElementById('f-carrier').value,
     tracking:document.getElementById('f-tracking').value,
     ccNo:document.getElementById('f-cc').value,
+    sku:document.getElementById('f-sku').value,
+    qty:document.getElementById('f-qty').value,
+    paNo:document.getElementById('f-pa').value,
     reason:document.getElementById('f-reason').value,
     remark:document.getElementById('f-remark').value,
     testResult:document.getElementById('f-testresult').value,
@@ -1311,7 +1605,7 @@ function openViewModal(id) {
   const r = cases.find(x=>x.id===id); if(!r)return;
   document.getElementById('modal-view-content').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-      ${[['Invoice No.',r.invoiceNo,'mono'],['Platform',r.platform,''],['วันที่รับสินค้า',fmt(r.receivedDate),''],['Order Number',r.orderNo,''],['สภาพสินค้า',r.condition,''],['ขนส่ง',r.carrier,''],['Tracking No.',r.tracking,'mono'],['No. CC/CCC',r.ccNo,''],['SKU/Serial/IMEI',r.serial,'mono'],['เหตุผล',r.reason,''],['ผลทดสอบ',r.testResult,''],['วันที่ปิดงาน',fmt(r.stockDate),'']].map(([k,v,cls])=>`
+      ${[['Invoice No.',r.invoiceNo,'mono'],['เลขที่บิล (PA/RO)',r.paNo,'mono'],['Platform',r.platform,''],['วันที่รับสินค้า',fmt(r.receivedDate),''],['Order Number',r.orderNo,''],['SKU',r.sku,''],['จำนวน',r.qty,''],['สภาพสินค้า',r.condition,''],['ขนส่ง',r.carrier,''],['Tracking No.',r.tracking,'mono'],['No. CC/CCC',r.ccNo,''],['Serial/IMEI',r.serial,'mono'],['เหตุผล',r.reason,''],['ผลทดสอบ',r.testResult,''],['วันที่ปิดงาน',fmt(r.stockDate),'']].map(([k,v,cls])=>`
       <div style="padding:7px 0;border-bottom:0.5px solid var(--cream2)">
         <div style="font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">${k}</div>
         <div style="font-size:12px;font-weight:500;font-family:${cls==='mono'?'var(--mono)':'var(--font)'}">${v||'—'}</div>
@@ -1329,7 +1623,7 @@ function openViewModal(id) {
     </div>
     <div class="btn-row">
       ${r.status!=='ปิดงาน'?`<button class="btn btn-success btn-sm" onclick="closeModal('modal-view');advanceStatus('${r.id}')"><i class="ti ti-arrow-right"></i> ไปสถานะถัดไป</button>`:''}
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-view');openEditForm('${r.id}')"><i class="ti ti-edit"></i> แก้ไข</button>
+      ${(cap('editAll')||cap('editTest'))?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-view');openEditForm('${r.id}')"><i class="ti ti-edit"></i> แก้ไข</button>`:''}
       <button class="btn btn-primary btn-sm" onclick="closeModal('modal-view');openTicketModal('${r.id}')"><i class="ti ti-ticket"></i> ดูตั๋ว</button>
     </div>`;
   document.getElementById('modal-view').classList.add('open');
@@ -1357,8 +1651,8 @@ function openTicketModal(id) {
 //  EXPORT CSV
 // ═══════════════════════════════════════
 function toCSV(data){
-  const cols = ['ลำดับ','Invoice No.','Platform','วันที่รับสินค้า','Order Number','สภาพสินค้า','ขนส่ง','Tracking No.','No. CC/CCC','SKU/Serial/IMEI','เหตุผล','ผลทดสอบ','หมายเหตุทดสอบ','Remark','ได้รับสินค้าผิด','สถานะ','วันที่ปิดงาน'];
-  const rows = data.map((r,i)=>[i+1,r.invoiceNo,r.platform,r.receivedDate,r.orderNo,r.condition,r.carrier,r.tracking,r.ccNo,r.serial,r.reason,r.testResult,r.testNote,r.remark,r.wrongItem?'ใช่':'',r.status,r.stockDate]);
+  const cols = ['ลำดับ','Invoice No.','เลขที่บิล PA/RO','Platform','วันที่รับสินค้า','Order Number','SKU','จำนวน','สภาพสินค้า','ขนส่ง','Tracking No.','No. CC/CCC','Serial/IMEI','เหตุผล','ผลทดสอบ','หมายเหตุทดสอบ','Remark','ได้รับสินค้าผิด','สถานะ','วันที่ปิดงาน'];
+  const rows = data.map((r,i)=>[i+1,r.invoiceNo,r.paNo,r.platform,r.receivedDate,r.orderNo,r.sku,r.qty,r.condition,r.carrier,r.tracking,r.ccNo,r.serial,r.reason,r.testResult,r.testNote,r.remark,r.wrongItem?'ใช่':'',r.status,r.stockDate]);
   const esc = v => '"'+(String(v==null?'':v).replace(/"/g,'""'))+'"';
   return '﻿'+[cols,...rows].map(row=>row.map(esc).join(',')).join('\n');
 }
@@ -1373,18 +1667,134 @@ function exportCasesView() {
 }
 
 // ═══════════════════════════════════════
+//  IMPORT EXCEL / CSV
+// ═══════════════════════════════════════
+let impWB = null, impRows = [];
+const IMPORT_FIELDS = [
+  {key:'receivedDate',label:'วันที่รับสินค้า',syn:['date','วันที่']},
+  {key:'invoiceNo',label:'Invoice (CIV) *',syn:['civ','invoice']},
+  {key:'paNo',label:'เลขที่บิล (PA/RO)',syn:['เลขที่บิล','ro ','reference no']},
+  {key:'orderNo',label:'Order Number',syn:['order','reference']},
+  {key:'platform',label:'Platform / Channel',syn:['channel','platflom','platform']},
+  {key:'sku',label:'SKU',syn:['sku']},
+  {key:'serial',label:'Serial / SN',syn:['serialno','serial','sn']},
+  {key:'qty',label:'จำนวน',syn:['return quantity','quantity','จำนวน']},
+  {key:'condition',label:'สภาพสินค้า',syn:['product condition','สภาพ']},
+  {key:'tracking',label:'Tracking',syn:['tracking']},
+  {key:'reason',label:'เหตุผล / Issue',syn:['issue','เหตุผล']},
+  {key:'ccNo',label:'No. CC',syn:['cc']},
+  {key:'remark',label:'Remark / หมายเหตุ',syn:['remark','หมายเหตุ']}
+];
+function openImport(){
+  if(!cap('create')){ alert('บทบาทของคุณไม่มีสิทธิ์นำเข้าข้อมูล'); return; }
+  if(!window.XLSX){ alert('ไลบรารีอ่าน Excel ยังโหลดไม่เสร็จ (ต้องต่ออินเทอร์เน็ต)'); return; }
+  document.getElementById('imp-fname').textContent='คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv';
+  document.getElementById('imp-config').style.display='none';
+  document.getElementById('imp-file').value='';
+  document.getElementById('imp-status').innerHTML = STATUS_FLOW.map(s=>`<option value="${s.key}">${s.en} — ${s.key}</option>`).join('');
+  document.getElementById('imp-status').value='ได้รับสินค้าแล้ว';
+  document.getElementById('imp-headrow').innerHTML=[1,2,3].map(n=>`<option value="${n-1}">แถวที่ ${n}</option>`).join('');
+  impWB=null; impRows=[];
+  document.getElementById('modal-import').classList.add('open');
+}
+function impLoadFile(e){
+  const f=e.target.files[0]; if(!f)return;
+  document.getElementById('imp-fname').textContent=f.name;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try { impWB=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      const sel=document.getElementById('imp-sheet');
+      sel.innerHTML=impWB.SheetNames.map(n=>`<option>${n}</option>`).join('');
+      document.getElementById('imp-config').style.display='';
+      impPickSheet();
+    } catch(err){ alert('อ่านไฟล์ไม่สำเร็จ: '+err.message); }
+  };
+  rd.readAsArrayBuffer(f);
+}
+function impPickSheet(){
+  const name=document.getElementById('imp-sheet').value;
+  const hIdx=+document.getElementById('imp-headrow').value;
+  const ws=impWB.Sheets[name];
+  impRows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  const header=(impRows[hIdx]||[]).map(x=>(x==null?'':x.toString()).trim());
+  const colOpts='<option value="-1">— ไม่ใช้ —</option>'+header.map((h,i)=>`<option value="${i}">[${i+1}] ${h||'(ว่าง)'}</option>`).join('');
+  document.getElementById('imp-map').innerHTML=IMPORT_FIELDS.map(f=>{
+    let sel=-1;
+    for(const syn of f.syn){ const idx=header.findIndex(h=>h.toLowerCase().includes(syn)); if(idx>=0){sel=idx;break;} }
+    return `<tr><td style="font-weight:500">${f.label}</td><td><select class="form-input imp-sel" data-key="${f.key}" style="font-size:11px">${colOpts.replace(`value="${sel}"`,`value="${sel}" selected`)}</select></td></tr>`;
+  }).join('');
+  const dataN=Math.max(0,impRows.length-hIdx-1);
+  document.getElementById('imp-preview').innerHTML=`พบข้อมูล <b>${dataN}</b> แถวใน sheet "${name}" (หัวตาราง = แถวที่ ${hIdx+1})`;
+}
+function impDate(v){
+  if(v==null||v==='')return '';
+  if(v instanceof Date && !isNaN(v)){ const y=v.getFullYear(),m=('0'+(v.getMonth()+1)).slice(-2),d=('0'+v.getDate()).slice(-2); return `${y}-${m}-${d}`; }
+  const s=v.toString().trim();
+  const m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if(m){ let d=+m[1],mo=+m[2],y=+m[3]; if(y<100)y+=2000; if(y>2400)y-=543; return `${y}-${('0'+mo).slice(-2)}-${('0'+d).slice(-2)}`; }
+  const dt=new Date(s); if(!isNaN(dt))return dt.toISOString().slice(0,10); return '';
+}
+function impPlatform(v,fb){ const s=(v||'').toString().toLowerCase(); if(s.includes('tik'))return 'TIKTOK_HUAWEI'; if(s.includes('shopee')||s.includes('spx'))return 'SHOPEE_HUAWEI'; if(s.includes('lazada')||s.includes('lex'))return 'Lazada_HUAWEI'; if(s.includes('web'))return 'HUAWEI_Web'; return fb; }
+async function impRun(){
+  const hIdx=+document.getElementById('imp-headrow').value;
+  const map={}; document.querySelectorAll('.imp-sel').forEach(s=>map[s.dataset.key]=+s.value);
+  const status=document.getElementById('imp-status').value;
+  const platfb=document.getElementById('imp-platfb').value;
+  const dedup=document.getElementById('imp-dedup').checked;
+  const get=(row,key)=>{ const c=map[key]; return c>=0?(row[c]==null?'':row[c].toString().trim()):''; };
+  const existing=new Set(cases.map(c=>(c.invoiceNo||'')+'|'+(c.orderNo||'')));
+  const now=new Date().toISOString();
+  let added=0,skipped=0,idx=0;
+  const newItems=[];
+  for(let i=hIdx+1;i<impRows.length;i++){
+    const row=impRows[i]||[];
+    const inv=get(row,'invoiceNo'), ord=get(row,'orderNo');
+    if(!inv && !ord) continue; // empty row
+    const keyd=(inv||'')+'|'+(ord||'');
+    if(dedup && existing.has(keyd)){ skipped++; continue; }
+    existing.add(keyd);
+    const rd=impDate(get(row,'receivedDate'));
+    const item={
+      id:'imp'+Date.now()+'_'+(idx++),
+      createdAt: rd?new Date(rd).toISOString():now, updatedAt:now,
+      receivedDate:rd, invoiceNo:inv, paNo:get(row,'paNo'), orderNo:ord,
+      platform: impPlatform(get(row,'platform'),platfb),
+      sku:get(row,'sku'), serial:get(row,'serial'), qty:get(row,'qty'),
+      condition:get(row,'condition')||'อื่นๆ', carrier:'',
+      tracking:get(row,'tracking'), ccNo:get(row,'ccNo'),
+      reason:get(row,'reason')||'อื่นๆ', remark:get(row,'remark'),
+      testResult:'', testNote:'', status, stockDate:'', wrongItem:false,
+      images:[], signature:null, history:[]
+    };
+    logHistory(item,'นำเข้าจาก Excel');
+    newItems.push(item); added++;
+  }
+  if(!added){ document.getElementById('imp-preview').innerHTML=`<span style="color:#A32D2D">ไม่มีข้อมูลใหม่ให้นำเข้า (ข้ามซ้ำ ${skipped})</span>`; return; }
+  cases=cases.concat(newItems);
+  try {
+    localStorage.setItem('hrms_v5',JSON.stringify(cases));
+    if(firebaseDb){ // batch write (chunks of 400)
+      for(let j=0;j<newItems.length;j+=400){ const b=firebaseDb.batch(); newItems.slice(j,j+400).forEach(it=>{const{id,...d}=it;b.set(firebaseDb.collection(CASES_COLLECTION).doc(id),d);}); await b.commit(); }
+    }
+  } catch(err){ console.error(err); alert('บันทึกขึ้น Firebase ไม่สำเร็จ: '+err.message+'\n(ข้อมูลถูกเก็บในเครื่องแล้ว)'); }
+  closeModal('modal-import');
+  alert(`นำเข้าสำเร็จ ${added} รายการ`+(skipped?` · ข้ามซ้ำ ${skipped} รายการ`:''));
+  openCases('all');
+}
+
+// ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
 window.addEventListener('click', e => { if(e.target.classList.contains('modal-backdrop')) e.target.classList.remove('open'); });
-async function initApp() {
+async function bootApp() {
   await loadCases();
-  document.getElementById('cur-user').value = currentUser;
   buildStatusSelect('สร้างคำขอคืน');
   populateFilters();
   updateSideCounts();
   renderDash();
 }
-initApp();
+// entry point: gate app behind auth
+checkSession();
 </script>
 </body>
 </html>

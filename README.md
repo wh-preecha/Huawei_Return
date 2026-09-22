@@ -11,7 +11,11 @@
 - **IPQC / Service**: บันทึกผลทดสอบ (ผ่าน/ไม่ผ่าน/สินค้าเสีย), SKU/Serial/IMEI
 - **มุมมองฟอร์มตามบทบาท**: ทั้งหมด / ฝ่ายขาย / คลัง / IPQC
 - **Audit Log**: บันทึกผู้ใช้งาน + ประวัติการเปลี่ยนสถานะ
+- **Login / สมัครสมาชิกในตัว** (เก็บบัญชีในเครื่อง) + แยกสิทธิ์ 4 บทบาท (Admin / ฝ่ายขาย / คลัง / IPQC) + หน้าจัดการผู้ใช้
+- **นำเข้าข้อมูลจาก Excel/CSV** (SheetJS) — เลือก sheet, auto-map คอลัมน์, กันข้อมูลซ้ำ
 - แนบรูปภาพ, ลายเซ็น (mouse/touch), พิมพ์ตั๋วรับคืน, Export CSV (Excel)
+
+> ความปลอดภัย: ระบบ login เป็น client-side (localStorage) เหมาะจำกัดสิทธิ์ใช้งานทั่วไป ไม่ใช่ security ระดับ production — หากต้องการจริงควรใช้ Firebase Auth + Firestore Security Rules
 
 ## การใช้งาน
 เปิด `index.html` ในเบราว์เซอร์ได้เลย ข้อมูลซิงก์ผ่าน Firebase Firestore (collection `return_cases`) และสำรองไว้ใน `localStorage` ของเครื่อง
