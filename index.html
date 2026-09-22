@@ -699,25 +699,8 @@ tbody tr:hover td{background:var(--s50)}
       <div style="font-size:12px;color:var(--tmu)" id="imp-fname">คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv</div>
     </div>
     <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="impLoadFile(event)">
-
-    <div id="imp-config" style="display:none;margin-top:12px">
-      <div class="search-row">
-        <div class="form-group" style="flex:1"><div class="form-label">เลือก Sheet</div><select class="form-input" id="imp-sheet" onchange="impPickSheet()"></select></div>
-        <div class="form-group" style="flex:0 0 130px"><div class="form-label">แถวหัวตาราง</div><select class="form-input" id="imp-headrow" onchange="impPickSheet()"></select></div>
-      </div>
-      <div class="form-label" style="margin:8px 0 4px">จับคู่คอลัมน์ (ปรับได้)</div>
-      <div class="table-wrap" style="max-height:230px;overflow-y:auto"><table><thead><tr><th style="width:150px">ฟิลด์ในระบบ</th><th>คอลัมน์จากไฟล์</th></tr></thead><tbody id="imp-map"></tbody></table></div>
-      <div class="search-row" style="margin-top:10px">
-        <div class="form-group" style="flex:1"><div class="form-label">สถานะเริ่มต้นของรายการที่นำเข้า</div><select class="form-input" id="imp-status"></select></div>
-        <div class="form-group" style="flex:1"><div class="form-label">Platform (กรณีเว้นว่าง)</div><select class="form-input" id="imp-platfb"><option>TIKTOK_HUAWEI</option><option>SHOPEE_HUAWEI</option><option>Lazada_HUAWEI</option><option>HUAWEI_Web</option></select></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tm);margin-top:6px"><input type="checkbox" id="imp-dedup" checked style="width:14px;height:14px;accent-color:var(--s500)"> ข้ามรายการที่ Invoice/Order ซ้ำกับที่มีอยู่แล้ว</label>
-      <div id="imp-preview" style="font-size:11px;color:var(--tmu);margin-top:8px"></div>
-      <div class="btn-row">
-        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-import')">ยกเลิก</button>
-        <button class="btn btn-success btn-sm" onclick="impRun()"><i class="ti ti-database-import"></i> นำเข้าข้อมูล</button>
-      </div>
-    </div>
+    <div style="font-size:11px;color:var(--tmu);margin-top:10px;line-height:1.6"><i class="ti ti-bolt" style="color:#C07A10"></i> ระบบจะ <b>จับคู่คอลัมน์และนำเข้าให้อัตโนมัติทุก Sheet</b> — ตรวจหัวตารางเอง, กำหนดสถานะจากชื่อ Sheet, แยกขนส่ง/เลข Tracking, และกันข้อมูลซ้ำ</div>
+    <div id="imp-result" style="margin-top:12px"></div>
   </div>
 </div>
 
@@ -1685,46 +1668,109 @@ const IMPORT_FIELDS = [
   {key:'ccNo',label:'No. CC',syn:['cc']},
   {key:'remark',label:'Remark / หมายเหตุ',syn:['remark','หมายเหตุ']}
 ];
+const CARRIERS=['J&T','FLASH','SPX','Shopee Xpress','LEX','Lazada','KERRY','EMS','Thaipost','DHL','KEX'];
 function openImport(){
   if(!cap('create')){ alert('บทบาทของคุณไม่มีสิทธิ์นำเข้าข้อมูล'); return; }
   if(!window.XLSX){ alert('ไลบรารีอ่าน Excel ยังโหลดไม่เสร็จ (ต้องต่ออินเทอร์เน็ต)'); return; }
   document.getElementById('imp-fname').textContent='คลิกเพื่อเลือกไฟล์ .xlsx / .xls / .csv';
-  document.getElementById('imp-config').style.display='none';
+  document.getElementById('imp-result').innerHTML='';
   document.getElementById('imp-file').value='';
-  document.getElementById('imp-status').innerHTML = STATUS_FLOW.map(s=>`<option value="${s.key}">${s.en} — ${s.key}</option>`).join('');
-  document.getElementById('imp-status').value='ได้รับสินค้าแล้ว';
-  document.getElementById('imp-headrow').innerHTML=[1,2,3].map(n=>`<option value="${n-1}">แถวที่ ${n}</option>`).join('');
-  impWB=null; impRows=[];
   document.getElementById('modal-import').classList.add('open');
 }
 function impLoadFile(e){
   const f=e.target.files[0]; if(!f)return;
   document.getElementById('imp-fname').textContent=f.name;
+  document.getElementById('imp-result').innerHTML='<div style="font-size:12px;color:var(--tmu)"><i class="ti ti-loader-2"></i> กำลังอ่านและนำเข้าข้อมูล...</div>';
   const rd=new FileReader();
   rd.onload=ev=>{
-    try { impWB=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-      const sel=document.getElementById('imp-sheet');
-      sel.innerHTML=impWB.SheetNames.map(n=>`<option>${n}</option>`).join('');
-      document.getElementById('imp-config').style.display='';
-      impPickSheet();
-    } catch(err){ alert('อ่านไฟล์ไม่สำเร็จ: '+err.message); }
+    let wb; try { wb=XLSX.read(ev.target.result,{type:'array',cellDates:true}); }
+    catch(err){ document.getElementById('imp-result').innerHTML='<div style="color:#A32D2D;font-size:12px">อ่านไฟล์ไม่สำเร็จ: '+err.message+'</div>'; return; }
+    autoImport(wb);
   };
   rd.readAsArrayBuffer(f);
 }
-function impPickSheet(){
-  const name=document.getElementById('imp-sheet').value;
-  const hIdx=+document.getElementById('imp-headrow').value;
-  const ws=impWB.Sheets[name];
-  impRows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
-  const header=(impRows[hIdx]||[]).map(x=>(x==null?'':x.toString()).trim());
-  const colOpts='<option value="-1">— ไม่ใช้ —</option>'+header.map((h,i)=>`<option value="${i}">[${i+1}] ${h||'(ว่าง)'}</option>`).join('');
-  document.getElementById('imp-map').innerHTML=IMPORT_FIELDS.map(f=>{
-    let sel=-1;
-    for(const syn of f.syn){ const idx=header.findIndex(h=>h.toLowerCase().includes(syn)); if(idx>=0){sel=idx;break;} }
-    return `<tr><td style="font-weight:500">${f.label}</td><td><select class="form-input imp-sel" data-key="${f.key}" style="font-size:11px">${colOpts.replace(`value="${sel}"`,`value="${sel}" selected`)}</select></td></tr>`;
-  }).join('');
-  const dataN=Math.max(0,impRows.length-hIdx-1);
-  document.getElementById('imp-preview').innerHTML=`พบข้อมูล <b>${dataN}</b> แถวใน sheet "${name}" (หัวตาราง = แถวที่ ${hIdx+1})`;
+function detectHeader(rows){
+  let best=-1,bestScore=0;
+  for(let r=0;r<Math.min(6,rows.length);r++){
+    const cells=(rows[r]||[]).map(x=>(x==null?'':x.toString()).toLowerCase());
+    let score=0; IMPORT_FIELDS.forEach(f=>{ if(f.syn.some(s=>cells.some(c=>c.includes(s)))) score++; });
+    if(score>bestScore){bestScore=score;best=r;}
+  }
+  return {idx:best,score:bestScore};
+}
+function buildMap(header){ const map={}; IMPORT_FIELDS.forEach(f=>{ let sel=-1; for(const syn of f.syn){ const idx=header.findIndex(h=>h.includes(syn)); if(idx>=0){sel=idx;break;} } map[f.key]=sel; }); return map; }
+function sheetStatus(name){
+  const s=(name||'');
+  if(s.includes('ส่งคืนลูกค้า')) return 'ส่งคืนลูกค้า';
+  if(s.includes('เครม')||s.includes('เคลม')||s.includes('service')) return 'เคลม Platform';
+  if(s.includes('ทำรับคืนระบบใหม่')) return 'กำลังทดสอบ';
+  if(s.includes('ปัญหา')||s.includes('รับกลับมาแล้วมีปัญหา')) return 'รอทดสอบ';
+  if(s.includes('แกะแล้ว')||s.includes('ได้รับ')) return 'ได้รับสินค้าแล้ว';
+  return 'ได้รับสินค้าแล้ว';
+}
+function extractCarrier(text){ const s=(text||'').toString(); const hit=CARRIERS.find(c=>s.toLowerCase().includes(c.toLowerCase())); return hit||''; }
+function extractTracking(text){
+  const s=(text||'').toString(); if(!s)return '';
+  const codes=s.match(/[A-Za-z]{0,3}\d[A-Za-z0-9]{6,}/g);
+  if(codes&&codes.length) return codes.sort((a,b)=>b.length-a.length)[0];
+  return '';
+}
+function isWrong(cond,reason){ const s=((cond||'')+' '+(reason||'')); return /ไม่ใช่ของ|ไม่ใช้ของ|ผิดรุ่น|สินค้าผิด|ไม่ครบ|คืนออเดอร์อื่น/.test(s); }
+async function autoImport(wb){
+  const existing=new Set(cases.map(c=>(c.invoiceNo||'')+'|'+(c.orderNo||'')));
+  const now=new Date().toISOString();
+  const newItems=[]; const report=[]; let idx=0, totalSkip=0;
+  wb.SheetNames.forEach(name=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false,defval:''});
+    const det=detectHeader(rows);
+    if(det.idx<0||det.score<2){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่พบหัวตาราง)'}); return; }
+    const header=(rows[det.idx]||[]).map(x=>(x==null?'':x.toString()).trim().toLowerCase());
+    const map=buildMap(header);
+    if(map.invoiceNo<0 && map.orderNo<0){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่มี Invoice/Order)'}); return; }
+    const status=sheetStatus(name);
+    const get=(row,key)=>{ const c=map[key]; return c>=0?(row[c]==null?'':row[c].toString().trim()):''; };
+    let added=0,skip=0;
+    for(let i=det.idx+1;i<rows.length;i++){
+      const row=rows[i]||[];
+      const inv=get(row,'invoiceNo'), ord=get(row,'orderNo');
+      if(!inv && !ord) continue;
+      const keyd=(inv||'')+'|'+(ord||'');
+      if(existing.has(keyd)){ skip++; totalSkip++; continue; }
+      existing.add(keyd);
+      const rd=impDate(get(row,'receivedDate'));
+      const trackRaw=get(row,'tracking');
+      const cond=get(row,'condition')||'อื่นๆ', reason=get(row,'reason')||'อื่นๆ';
+      const item={
+        id:'imp'+Date.now()+'_'+(idx++),
+        createdAt: rd?new Date(rd).toISOString():now, updatedAt:now,
+        receivedDate:rd, invoiceNo:inv, paNo:get(row,'paNo'), orderNo:ord,
+        platform: impPlatform(get(row,'platform'),'TIKTOK_HUAWEI'),
+        sku:get(row,'sku'), serial:get(row,'serial'), qty:get(row,'qty'),
+        condition:cond, carrier:extractCarrier(trackRaw),
+        tracking:extractTracking(trackRaw)||trackRaw, ccNo:get(row,'ccNo'),
+        reason:reason, remark:get(row,'remark'),
+        testResult:'', testNote:'', status, stockDate: status==='ปิดงาน'?(rd||''):'',
+        wrongItem:isWrong(cond,reason), images:[], signature:null, history:[]
+      };
+      logHistory(item,`นำเข้าจาก Excel · sheet "${name}"`);
+      newItems.push(item); added++;
+    }
+    report.push({name,added,skip,note:added?('สถานะ: '+status):'ไม่มีข้อมูลใหม่'});
+  });
+  const res=document.getElementById('imp-result');
+  if(!newItems.length){
+    res.innerHTML=`<div style="color:#A32D2D;font-size:12px">ไม่มีข้อมูลใหม่ให้นำเข้า (ข้ามซ้ำ ${totalSkip} รายการ)</div>`;
+    return;
+  }
+  cases=cases.concat(newItems);
+  try {
+    localStorage.setItem('hrms_v5',JSON.stringify(cases));
+    if(firebaseDb){ for(let j=0;j<newItems.length;j+=400){ const b=firebaseDb.batch(); newItems.slice(j,j+400).forEach(it=>{const{id,...d}=it;b.set(firebaseDb.collection(CASES_COLLECTION).doc(id),d);}); await b.commit(); } }
+  } catch(err){ console.error(err); res.innerHTML=`<div style="color:#A32D2D;font-size:12px">บันทึกขึ้น Firebase ไม่สำเร็จ: ${err.message}<br>(ข้อมูลถูกเก็บในเครื่องแล้ว)</div>`; }
+  res.innerHTML=`<div class="alert-bar" style="margin-bottom:8px"><i class="ti ti-circle-check" style="color:#0F6E56"></i><div><b style="color:#0F6E56">นำเข้าสำเร็จ ${newItems.length} รายการ</b> · ข้ามซ้ำ ${totalSkip}</div></div>
+    <div class="table-wrap" style="max-height:180px;overflow-y:auto"><table><thead><tr><th>Sheet</th><th style="width:70px;text-align:center">นำเข้า</th><th style="width:60px;text-align:center">ซ้ำ</th><th>หมายเหตุ</th></tr></thead><tbody>${report.map(r=>`<tr><td>${r.name}</td><td style="text-align:center;font-weight:600;color:${r.added?'#0F6E56':'var(--tl)'}">${r.added}</td><td style="text-align:center;color:var(--tmu)">${r.skip}</td><td style="color:var(--tmu);font-size:10px">${r.note}</td></tr>`).join('')}</tbody></table></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="closeModal('modal-import');openCases('all')"><i class="ti ti-list-details"></i> ดูรายการที่นำเข้า</button></div>`;
+  updateSideCounts();
 }
 function impDate(v){
   if(v==null||v==='')return '';
@@ -1735,53 +1781,6 @@ function impDate(v){
   const dt=new Date(s); if(!isNaN(dt))return dt.toISOString().slice(0,10); return '';
 }
 function impPlatform(v,fb){ const s=(v||'').toString().toLowerCase(); if(s.includes('tik'))return 'TIKTOK_HUAWEI'; if(s.includes('shopee')||s.includes('spx'))return 'SHOPEE_HUAWEI'; if(s.includes('lazada')||s.includes('lex'))return 'Lazada_HUAWEI'; if(s.includes('web'))return 'HUAWEI_Web'; return fb; }
-async function impRun(){
-  const hIdx=+document.getElementById('imp-headrow').value;
-  const map={}; document.querySelectorAll('.imp-sel').forEach(s=>map[s.dataset.key]=+s.value);
-  const status=document.getElementById('imp-status').value;
-  const platfb=document.getElementById('imp-platfb').value;
-  const dedup=document.getElementById('imp-dedup').checked;
-  const get=(row,key)=>{ const c=map[key]; return c>=0?(row[c]==null?'':row[c].toString().trim()):''; };
-  const existing=new Set(cases.map(c=>(c.invoiceNo||'')+'|'+(c.orderNo||'')));
-  const now=new Date().toISOString();
-  let added=0,skipped=0,idx=0;
-  const newItems=[];
-  for(let i=hIdx+1;i<impRows.length;i++){
-    const row=impRows[i]||[];
-    const inv=get(row,'invoiceNo'), ord=get(row,'orderNo');
-    if(!inv && !ord) continue; // empty row
-    const keyd=(inv||'')+'|'+(ord||'');
-    if(dedup && existing.has(keyd)){ skipped++; continue; }
-    existing.add(keyd);
-    const rd=impDate(get(row,'receivedDate'));
-    const item={
-      id:'imp'+Date.now()+'_'+(idx++),
-      createdAt: rd?new Date(rd).toISOString():now, updatedAt:now,
-      receivedDate:rd, invoiceNo:inv, paNo:get(row,'paNo'), orderNo:ord,
-      platform: impPlatform(get(row,'platform'),platfb),
-      sku:get(row,'sku'), serial:get(row,'serial'), qty:get(row,'qty'),
-      condition:get(row,'condition')||'อื่นๆ', carrier:'',
-      tracking:get(row,'tracking'), ccNo:get(row,'ccNo'),
-      reason:get(row,'reason')||'อื่นๆ', remark:get(row,'remark'),
-      testResult:'', testNote:'', status, stockDate:'', wrongItem:false,
-      images:[], signature:null, history:[]
-    };
-    logHistory(item,'นำเข้าจาก Excel');
-    newItems.push(item); added++;
-  }
-  if(!added){ document.getElementById('imp-preview').innerHTML=`<span style="color:#A32D2D">ไม่มีข้อมูลใหม่ให้นำเข้า (ข้ามซ้ำ ${skipped})</span>`; return; }
-  cases=cases.concat(newItems);
-  try {
-    localStorage.setItem('hrms_v5',JSON.stringify(cases));
-    if(firebaseDb){ // batch write (chunks of 400)
-      for(let j=0;j<newItems.length;j+=400){ const b=firebaseDb.batch(); newItems.slice(j,j+400).forEach(it=>{const{id,...d}=it;b.set(firebaseDb.collection(CASES_COLLECTION).doc(id),d);}); await b.commit(); }
-    }
-  } catch(err){ console.error(err); alert('บันทึกขึ้น Firebase ไม่สำเร็จ: '+err.message+'\n(ข้อมูลถูกเก็บในเครื่องแล้ว)'); }
-  closeModal('modal-import');
-  alert(`นำเข้าสำเร็จ ${added} รายการ`+(skipped?` · ข้ามซ้ำ ${skipped} รายการ`:''));
-  openCases('all');
-}
-
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
