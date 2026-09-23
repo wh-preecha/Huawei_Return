@@ -1387,10 +1387,11 @@ function renderCases() {
   if(pl) data = data.filter(x=>x.platform===pl);
   if(cd) data = data.filter(x=>x.condition===cd);
   data = data.sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));
-  document.getElementById('cnt-cases').textContent = data.length+' รายการ';
+  const CAP=400; const shown=data.slice(0,CAP);
+  document.getElementById('cnt-cases').textContent = data.length+' รายการ'+(data.length>CAP?` (แสดง ${CAP} แรก — กรอง/ค้นหาเพื่อดูเฉพาะเจาะจง)`:'');
   const el = document.getElementById('tbody-cases');
   if(!data.length){el.innerHTML=`<tr><td colspan="7"><div class="no-data"><i class="ti ti-search-off"></i>ไม่พบข้อมูล</div></td></tr>`;return;}
-  el.innerHTML = data.map(r=>`<tr>
+  el.innerHTML = shown.map(r=>`<tr>
     <td><div style="font-weight:600;color:var(--s600);font-family:var(--mono);font-size:10px">${r.invoiceNo}</div><div style="font-size:9px;color:var(--tl)">${r.orderNo||''}</div></td>
     <td><span class="ptag">${r.platform.replace('_HUAWEI','')}</span></td>
     <td style="color:var(--tm)">${fmt(r.receivedDate)}</td>
@@ -1716,21 +1717,31 @@ function extractTracking(text){
   return '';
 }
 function isWrong(cond,reason){ const s=((cond||'')+' '+(reason||'')); return /ไม่ใช่ของ|ไม่ใช้ของ|ผิดรุ่น|สินค้าผิด|ไม่ครบ|คืนออเดอร์อื่น/.test(s); }
+const yield_=()=>new Promise(r=>setTimeout(r,0));
+function sheetCols(ws){ try{ return XLSX.utils.decode_range(ws['!ref']).e.c+1; }catch{ return 0; } }
 async function autoImport(wb){
   const existing=new Set(cases.map(c=>(c.invoiceNo||'')+'|'+(c.orderNo||'')));
   const now=new Date().toISOString();
   const newItems=[]; const report=[]; let idx=0, totalSkip=0;
-  wb.SheetNames.forEach(name=>{
+  const res=document.getElementById('imp-result');
+  const total=wb.SheetNames.length; let si=0;
+  for(const name of wb.SheetNames){
+    si++;
+    res.innerHTML=`<div style="font-size:12px;color:var(--tmu)"><i class="ti ti-loader-2"></i> กำลังประมวลผล ${si}/${total}: "${name}" · นำเข้าแล้ว ${newItems.length}</div>`;
+    await yield_();
+    // ข้าม sheet ที่กว้างผิดปกติ (report ฯลฯ) — ไม่ใช่ข้อมูลเคส
+    if(sheetCols(wb.Sheets[name])>80){ report.push({name,added:0,skip:0,note:'ข้าม (คอลัมน์มากเกินไป)'}); continue; }
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false,defval:''});
     const det=detectHeader(rows);
-    if(det.idx<0||det.score<2){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่พบหัวตาราง)'}); return; }
+    if(det.idx<0||det.score<2){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่พบหัวตาราง)'}); continue; }
     const header=(rows[det.idx]||[]).map(x=>(x==null?'':x.toString()).trim().toLowerCase());
     const map=buildMap(header);
-    if(map.invoiceNo<0 && map.orderNo<0){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่มี Invoice/Order)'}); return; }
+    if(map.invoiceNo<0 && map.orderNo<0){ report.push({name,added:0,skip:0,note:'ข้าม (ไม่มี Invoice/Order)'}); continue; }
     const status=sheetStatus(name);
     const get=(row,key)=>{ const c=map[key]; return c>=0?(row[c]==null?'':row[c].toString().trim()):''; };
     let added=0,skip=0;
     for(let i=det.idx+1;i<rows.length;i++){
+      if(i%400===0) await yield_();
       const row=rows[i]||[];
       const inv=get(row,'invoiceNo'), ord=get(row,'orderNo');
       if(!inv && !ord) continue;
@@ -1756,8 +1767,7 @@ async function autoImport(wb){
       newItems.push(item); added++;
     }
     report.push({name,added,skip,note:added?('สถานะ: '+status):'ไม่มีข้อมูลใหม่'});
-  });
-  const res=document.getElementById('imp-result');
+  }
   if(!newItems.length){
     res.innerHTML=`<div style="color:#A32D2D;font-size:12px">ไม่มีข้อมูลใหม่ให้นำเข้า (ข้ามซ้ำ ${totalSkip} รายการ)</div>`;
     return;
@@ -1765,7 +1775,14 @@ async function autoImport(wb){
   cases=cases.concat(newItems);
   try {
     localStorage.setItem('hrms_v5',JSON.stringify(cases));
-    if(firebaseDb){ for(let j=0;j<newItems.length;j+=400){ const b=firebaseDb.batch(); newItems.slice(j,j+400).forEach(it=>{const{id,...d}=it;b.set(firebaseDb.collection(CASES_COLLECTION).doc(id),d);}); await b.commit(); } }
+  } catch(err){ console.warn('localStorage quota', err); }
+  try {
+    if(firebaseDb){ const chunks=Math.ceil(newItems.length/400);
+      for(let j=0,ci=0;j<newItems.length;j+=400,ci++){
+        res.innerHTML=`<div style="font-size:12px;color:var(--tmu)"><i class="ti ti-loader-2"></i> กำลังบันทึกขึ้นฐานข้อมูล ${ci+1}/${chunks}...</div>`;
+        await yield_();
+        const b=firebaseDb.batch(); newItems.slice(j,j+400).forEach(it=>{const{id,...d}=it;b.set(firebaseDb.collection(CASES_COLLECTION).doc(id),d);}); await b.commit();
+      } }
   } catch(err){ console.error(err); res.innerHTML=`<div style="color:#A32D2D;font-size:12px">บันทึกขึ้น Firebase ไม่สำเร็จ: ${err.message}<br>(ข้อมูลถูกเก็บในเครื่องแล้ว)</div>`; }
   res.innerHTML=`<div class="alert-bar" style="margin-bottom:8px"><i class="ti ti-circle-check" style="color:#0F6E56"></i><div><b style="color:#0F6E56">นำเข้าสำเร็จ ${newItems.length} รายการ</b> · ข้ามซ้ำ ${totalSkip}</div></div>
     <div class="table-wrap" style="max-height:180px;overflow-y:auto"><table><thead><tr><th>Sheet</th><th style="width:70px;text-align:center">นำเข้า</th><th style="width:60px;text-align:center">ซ้ำ</th><th>หมายเหตุ</th></tr></thead><tbody>${report.map(r=>`<tr><td>${r.name}</td><td style="text-align:center;font-weight:600;color:${r.added?'#0F6E56':'var(--tl)'}">${r.added}</td><td style="text-align:center;color:var(--tmu)">${r.skip}</td><td style="color:var(--tmu);font-size:10px">${r.note}</td></tr>`).join('')}</tbody></table></div>
