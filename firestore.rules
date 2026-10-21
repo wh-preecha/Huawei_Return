@@ -1,0 +1,51 @@
+rules_version = '2';
+// Firestore Security Rules — Huawei Return Management System
+// หมายเหตุ: แอปใช้บัญชีกลางแบบ login ในหน้าเว็บ (ไม่ใช้ Firebase Authentication)
+// rules จึงแยกตัวผู้ใช้ไม่ได้ แต่ช่วยกันความเสียหายหนักได้: ห้ามลบถาวร, ห้ามเขียนรูปแบบผิด, ห้ามแตะ collection อื่น
+//
+// G05 ความเสี่ยงที่ยอมรับ (เจ้าของระบบเลือกไม่ใช้ Firebase Auth):
+//   - collection users อ่านได้ด้วย config สาธารณะ → salt + hash รหัสผ่านถูกอ่านไปเดาแบบออฟไลน์ได้
+//     (แอปใช้ PBKDF2-SHA256 150,000 รอบ = hashVer 3 ทำให้เดาช้าลงมาก แต่ไม่ใช่การป้องกันจริง)
+//   - ลายเซ็นเซสชันในเครื่องคำนวณจาก hash ที่อ่านได้ → ปลอมเซสชันได้ (กันได้แค่การแก้ localStorage แบบทั่วไป)
+//   - การ update บัญชี (อนุมัติ / ตั้งบทบาท / รีเซ็ตรหัสผ่าน) rules แยกไม่ได้ว่าใครเป็นผู้ดูแล — ใครถือ config ก็ส่งได้
+//   ทางแก้จริง = Firebase Authentication (+ custom claims) หรือ Cloud Function สำหรับ login/อนุมัติ, และ App Check
+//
+// ลำดับการสร้างบัญชีที่ rules นี้รองรับ: สร้างเป็น pending เสมอ (สมัครเอง / ผู้ดูแลเพิ่ม / บัญชีแรก) แล้วจึง update เป็น active
+// บัญชีผู้ดูแลคนแรกของระบบใหม่: สมัครในแอป (แอปสร้าง pending แล้วตั้งเป็น admin ทันที) หรือตั้ง role/status เองใน Firebase Console ครั้งเดียว
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    match /return_cases/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasAny(['invoiceNo', 'orderNo'])
+                            && request.resource.data.status is string;
+      allow delete: if false;          // แอปลบแบบย้ายไปถังขยะ (deleted:true) เท่านั้น
+    }
+
+    match /users/{uid} {
+      allow read: if true;
+      // สร้างได้เฉพาะบัญชีที่รออนุมัติ — สร้าง {role:'admin', status:'active'} ตรง ๆ ไม่ได้
+      allow create: if request.resource.data.username == uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.role == 'pending'
+                    && request.resource.data.requestedRole in ['sales', 'wh', 'ipqc', 'admin']
+                    && request.resource.data.salt is string
+                    && request.resource.data.pass is string
+                    && request.resource.data.get('hashVer', 2) in [2, 3];
+      // แก้ได้เฉพาะรูปแบบที่ถูกต้อง: username / createdAt เปลี่ยนไม่ได้, บทบาท/สถานะอยู่ในชุดที่กำหนด, salt+pass ต้องเป็นข้อความครบคู่
+      // (rules ตรวจไม่ได้ว่าผู้ส่งเป็นผู้ดูแลหรือเจ้าของบัญชี — ดูหมายเหตุ G05 ด้านบน)
+      allow update: if request.resource.data.username == resource.data.username
+                    && request.resource.data.get('createdAt', '') == resource.data.get('createdAt', '')
+                    && request.resource.data.status in ['pending', 'active', 'suspended']
+                    && request.resource.data.role in ['admin', 'sales', 'wh', 'ipqc', 'pending']
+                    && request.resource.data.salt is string
+                    && request.resource.data.pass is string
+                    && request.resource.data.get('hashVer', 2) in [2, 3];
+      allow delete: if false;          // ใช้ "ระงับ" แทนการลบ เพื่อเก็บประวัติ
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
