@@ -434,17 +434,18 @@ tbody tr:hover td.cc-td{background:transparent}
 
     <!-- LOGIN -->
     <div id="auth-login">
-      <div class="auth-field"><label>ชื่อผู้ใช้ (Username)</label><input id="lg-user" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username"></div>
+      <div class="auth-field"><label for="lg-user">อีเมล</label><input id="lg-user" inputmode="email" autocomplete="username email" autocapitalize="none" spellcheck="false" placeholder="name@gmail.com"></div>
       <div class="auth-field"><label>รหัสผ่าน</label><input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="auth-err" id="lg-err"></div>
       <button class="btn btn-primary auth-btn" id="lg-btn" onclick="doLogin()"><i class="ti ti-login"></i> เข้าสู่ระบบ</button>
       <button class="btn btn-ghost auth-btn" id="lg-retry" style="display:none;margin-top:6px" onclick="retryAuth()"><i class="ti ti-refresh"></i> ลองใหม่</button>
+      <div class="auth-foot" style="margin-top:10px">ลืมรหัสผ่าน? แจ้งผู้ดูแลระบบให้รีเซ็ตรหัสผ่านจากเมนู "จัดการผู้ใช้"</div>
     </div>
 
     <!-- REGISTER -->
     <div id="auth-reg" style="display:none">
       <div class="auth-field"><label>ชื่อ-สกุล / ชื่อที่แสดง</label><input id="rg-name" placeholder="เช่น สมชาย ใจดี"></div>
-      <div class="auth-field"><label>ชื่อผู้ใช้ (Username)</label><input id="rg-user" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="a-z 0-9 . _ - (3–30 ตัว ห้ามซ้ำ)"></div>
+      <div class="auth-field"><label for="rg-user">อีเมล (Gmail หรืออีเมลใดก็ได้ — ใช้เข้าสู่ระบบ)</label><input id="rg-user" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="เช่น somchai@gmail.com"></div>
       <div class="auth-field"><label>แผนก (ผู้ดูแลจะอนุมัติ)</label>
         <select id="rg-role">
           <option value="sales">ฝ่ายขาย ECOM</option>
@@ -687,7 +688,7 @@ tbody tr:hover td.cc-td{background:transparent}
             <div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="renderUsers()" title="โหลดรายชื่อล่าสุด" aria-label="โหลดรายชื่อล่าสุด"><i class="ti ti-refresh"></i></button><button class="btn btn-ghost btn-sm" onclick="backupJSON()"><i class="ti ti-database-export"></i> สำรองข้อมูล (JSON)</button><button class="btn btn-warn btn-sm" id="btn-fixdates" onclick="fixSwappedDates()" title="ซ่อมวันที่รับที่เกินวันนี้ หรืออยู่หลังวันปิดงาน เพราะวัน/เดือนสลับ (ข้อมูลเก่า)"><i class="ti ti-calendar-repeat"></i> ซ่อมวันที่สลับวัน/เดือน</button><button class="btn btn-success btn-sm" onclick="openNewUser()"><i class="ti ti-user-plus"></i> เพิ่มผู้ใช้</button></div>
           </div>
           <div class="table-wrap"><table><thead><tr>
-            <th style="width:150px">ชื่อ</th><th style="width:110px">Username</th><th style="width:140px">บทบาท</th><th style="width:90px">สถานะ</th><th style="width:140px">สร้างเมื่อ / เข้าใช้ล่าสุด</th><th style="width:280px">จัดการ</th>
+            <th style="width:150px">ชื่อ</th><th style="width:190px">อีเมล</th><th style="width:140px">บทบาท</th><th style="width:90px">สถานะ</th><th style="width:140px">สร้างเมื่อ / เข้าใช้ล่าสุด</th><th style="width:280px">จัดการ</th>
           </tr></thead><tbody id="tbody-users"></tbody></table></div>
         </div>
         <!-- B5-2 ประวัติการนำเข้า (Admin) -->
@@ -880,7 +881,7 @@ tbody tr:hover td.cc-td{background:transparent}
     <div class="modal-title" id="user-modal-title">เพิ่มผู้ใช้ <button class="btn btn-ghost btn-xs" onclick="closeModal('modal-user')" title="ปิด" aria-label="ปิด"><i class="ti ti-x"></i></button></div>
     <input type="hidden" id="u-editkey">
     <div class="auth-field"><label>ชื่อที่แสดง</label><input id="u-name" class="form-input"></div>
-    <div class="auth-field"><label>Username</label><input id="u-user" class="form-input" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="a-z 0-9 . _ - (3–30 ตัว)"></div>
+    <div class="auth-field"><label for="u-user">อีเมล</label><input id="u-user" class="form-input" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="เช่น somchai@gmail.com"></div>
     <div class="auth-field"><label>บทบาท</label><select id="u-role" class="form-input"><option value="sales">ฝ่ายขาย ECOM</option><option value="wh">คลังสินค้า</option><option value="ipqc">IPQC / Service</option><option value="admin">ผู้ดูแลระบบ (Admin)</option></select></div>
     <div class="auth-field" id="u-pass-wrap"><label id="u-pass-lbl">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="u-pass" type="password" class="form-input" autocomplete="new-password"></div>
     <div id="u-note" style="font-size:10.5px;color:var(--tmu);margin-bottom:8px;line-height:1.5"></div>
@@ -1049,7 +1050,11 @@ const ROLES = {
 let me = null; // {username,name,role} — role มาจากโปรไฟล์กลางเสมอ ไม่อ่านจาก localStorage
 let profileUnsub = null, authBusy = false, userSaving = false, usersSeq = 0;
 const USERS_COLLECTION = 'users';
-const USER_RE = /^[a-z0-9._-]{3,30}$/;
+// บัญชี = อีเมลทั่วไป (Gmail / Hotmail / อีเมลบริษัท) — ไม่ต้องตั้งค่าใด ๆ เพิ่ม; ชื่อผู้ใช้แบบเดิม (เช่น demo.admin) ยังเข้าได้
+const USERNAME_RE = /^[a-z0-9._-]{3,30}$/;
+const EMAIL_RE = /^[a-z0-9._+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+const USER_RE = { test: s => typeof s === 'string' && s.length <= 120 && (USERNAME_RE.test(s) || EMAIL_RE.test(s)) };
+const EMAIL_HINT = 'กรุณากรอกอีเมลให้ถูกต้อง เช่น somchai@gmail.com';
 const SELF_ROLES = ['sales','wh','ipqc'];   // บทบาทที่สมัครเองได้ — Admin ต้องให้ผู้ดูแลตั้งเท่านั้น
 const SESS_KEY = 'hrms_sess', SESS_TTL = 12*3600e3, IDLE_MS = 30*60e3;
 const LOGOUT_REASON_KEY = 'hrms_logout_reason', IDLE_MSG = 'ออกจากระบบอัตโนมัติ เนื่องจากไม่มีการใช้งาน 30 นาที';
@@ -1072,7 +1077,7 @@ const Users = {
   // สร้างใหม่เท่านั้น: มีเอกสารอยู่แล้ว → throw code 'exists' (get ใน transaction จึงไม่เขียนทับบัญชีเดิม แม้สมัครพร้อมกัน)
   async create(u, data){
     u = String(u || '').trim().toLowerCase();
-    if(!USER_RE.test(u)) throw codeErr('invalid', 'username ไม่ถูกต้อง');
+    if(!USER_RE.test(u)) throw codeErr('invalid', 'อีเมลไม่ถูกต้อง');
     const doc = {...data, username:u};
     if(!firebaseDb){ const o = this._load(); if(o[u]) throw codeErr('exists'); o[u] = doc; this._save(o); return; }
     const ref = this._ref(u);
@@ -1196,7 +1201,7 @@ async function doRegister(){
   const err = $id('rg-err'); authMsg(err, '');
   if(authBusy || !authReady(err)) return;
   if(!name){ authMsg(err, 'กรุณากรอกชื่อ-สกุล / ชื่อที่แสดง'); return; }
-  if(!USER_RE.test(user)){ authMsg(err, 'username ใช้ a-z, 0-9, จุด, ขีดล่าง, ขีด ยาว 3–30 ตัว'); return; }
+  if(!EMAIL_RE.test(user) || user.length > 120){ authMsg(err, EMAIL_HINT); return; }
   if(pass.length < 6){ authMsg(err, 'รหัสผ่านอย่างน้อย 6 ตัว'); return; }
   if(!SELF_ROLES.includes(role)){ authMsg(err, 'กรุณาเลือกแผนก'); return; }
   setAuthBusy(true); authMsg(err, 'กำลังสมัคร…', 'info');
@@ -1224,7 +1229,7 @@ async function doRegister(){
     authMsg(err, '');
     switchAuth('login'); $id('lg-user').value = user; $id('lg-pass').value = '';
     authMsg('lg-err', 'สมัครสำเร็จ — รอผู้ดูแลอนุมัติ แล้วจึงเข้าสู่ระบบได้', 'ok');
-  } catch(e){ console.warn(e); authMsg(err, e.code === 'exists' ? 'username นี้มีผู้ใช้แล้ว' : 'สมัครไม่สำเร็จ: ' + netMsg(e)); }
+  } catch(e){ console.warn(e); authMsg(err, e.code === 'exists' ? 'อีเมลนี้สมัครไว้แล้ว — เข้าสู่ระบบได้เลย (ลืมรหัสผ่านให้ผู้ดูแลรีเซ็ต)' : 'สมัครไม่สำเร็จ: ' + netMsg(e)); }
   finally { setAuthBusy(false); }
 }
 async function doLogin(){
@@ -1232,11 +1237,11 @@ async function doLogin(){
   const pass = $id('lg-pass').value || '';
   const err = $id('lg-err'); authMsg(err, ''); $id('lg-retry').style.display = 'none';
   if(authBusy || !authReady(err)) return;
-  if(!user || !pass){ authMsg(err, 'กรุณากรอก username และรหัสผ่าน'); return; }
+  if(!user || !pass){ authMsg(err, 'กรุณากรอกอีเมลและรหัสผ่าน'); return; }
   setAuthBusy(true); authMsg(err, 'กำลังตรวจสอบ…', 'info');
   try {
     const p = await Users.get(user);
-    if(!(await checkPw(p, pass))){ authMsg(err, 'username หรือรหัสผ่านไม่ถูกต้อง'); return; }
+    if(!(await checkPw(p, pass))){ authMsg(err, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
     const why = profileProblem(p); if(why){ authMsg(err, why); return; }
     // G05 อัปเกรด hash เดิม (hashVer 2) เป็น PBKDF2 — ใช้ hash ใหม่กับเซสชันเฉพาะเมื่อเขียนขึ้นเซิร์ฟเวอร์สำเร็จ ไม่งั้นใช้ต่อแบบเดิม
     // อัปเกรดอัตโนมัติเริ่มตั้งแต่ PW3_UPGRADE_FROM เท่านั้น — ไฟล์แอปรุ่นก่อน (แท็บที่เปิดค้าง / ไฟล์ HTML ที่ดาวน์โหลดไว้) ตรวจ hashVer 3 ไม่เป็น
@@ -1425,7 +1430,7 @@ async function renderUsers(){
     else acts = (noRole ? pick() : '') + btn('btn-success','enable','ti-player-play','เปิดใช้',u.username);
     return `<tr>
       <td style="font-weight:600" title="${H(u.name)}">${H(u.name || '—')}${self ? ' <span style="font-size:9px;color:var(--tl);font-weight:400">(คุณ)</span>' : ''}</td>
-      <td style="font-family:var(--mono);font-size:10px">${H(u.username)}</td>
+      <td style="font-family:var(--mono);font-size:10px" title="${H(u.username)}">${H(u.username)}</td>
       <td>${role}</td>
       <td><span class="badge" style="background:${st[1]}1E;color:${st[1]};border:0.5px solid ${st[1]}55">${H(st[0])}</span></td>
       <td style="color:var(--tm);font-size:10px">${H(fmt(u.createdAt))}<div style="font-size:9px;color:var(--tl)">${u.lastLoginAt ? 'เข้าใช้ ' + H(fmtDT(u.lastLoginAt)) : 'ยังไม่เคยเข้าใช้'}</div></td>
@@ -1515,7 +1520,7 @@ function openNewUser(){
   $id('u-editkey').value = '';
   $id('u-name').value = ''; $id('u-user').value = '';
   $id('u-role').value = 'sales'; $id('u-role').disabled = false;
-  $id('u-note').textContent = 'บัญชีที่ผู้ดูแลเพิ่มใช้งานได้ทันที — แจ้ง username และรหัสผ่านให้ผู้ใช้';
+  $id('u-note').textContent = 'บัญชีที่ผู้ดูแลเพิ่มใช้งานได้ทันที — แจ้งอีเมลและรหัสผ่านให้ผู้ใช้';
   $id('modal-user').classList.add('open');
 }
 async function openEditUser(username){
@@ -1544,7 +1549,7 @@ async function saveUser(){
   if(!name){ err.textContent = 'กรอกชื่อที่แสดง'; return; }
   if(!ROLES[role]){ err.textContent = 'เลือกบทบาท'; return; }
   if(!key){
-    if(!USER_RE.test(user)){ err.textContent = 'username ใช้ a-z, 0-9, จุด, ขีดล่าง, ขีด ยาว 3–30 ตัว'; return; }
+    if(!EMAIL_RE.test(user) || user.length > 120){ err.textContent = EMAIL_HINT; return; }
     if(pass.length < 6){ err.textContent = 'รหัสผ่านอย่างน้อย 6 ตัว'; return; }
   }
   userSaving = true;
@@ -1567,9 +1572,9 @@ async function saveUser(){
       await userWrite(Users.create(user, {name, role:'pending', requestedRole:role, status:'pending', createdAt:now, approvedBy:'', approvedAt:'', lastLoginAt:'', ...(await pwFields(user, pass))}));
       try { await userWrite(Users.update(user, {role, status:'active', approvedBy:me.username, approvedAt:now})); }
       catch(e2){ console.warn(e2); err.textContent = 'สร้างบัญชี ' + user + ' แล้ว แต่อนุมัติไม่สำเร็จ (' + netMsg(e2) + ') — กด อนุมัติ ในตารางผู้ใช้อีกครั้ง'; renderUsers(); return; }
-      msg = 'เพิ่มผู้ใช้ ' + user + ' แล้ว — แจ้ง username และรหัสผ่านให้ผู้ใช้';
+      msg = 'เพิ่มผู้ใช้ ' + user + ' แล้ว — แจ้งอีเมลและรหัสผ่านให้ผู้ใช้';
     }
-  } catch(e){ console.warn(e); err.textContent = e.code === 'exists' ? 'username นี้มีผู้ใช้แล้ว' : 'บันทึกไม่สำเร็จ: ' + netMsg(e); return; }
+  } catch(e){ console.warn(e); err.textContent = e.code === 'exists' ? 'อีเมลนี้มีบัญชีอยู่แล้ว' : 'บันทึกไม่สำเร็จ: ' + netMsg(e); return; }
   finally { userSaving = false; }
   closeModal('modal-user'); showToast(msg); renderUsers();
 }
