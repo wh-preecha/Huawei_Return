@@ -1,0 +1,20 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.log
+node_modules/
+.env
+api/.env
+
+# ข้อมูลลูกค้า — ห้าม commit ขึ้น GitHub (repo ของ GitHub Pages มักเป็น public)
+*.json
+!package.json
+!package-lock.json
+*.xlsx
+*.xls
+*.csv
+backup*/

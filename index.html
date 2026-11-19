@@ -10,9 +10,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --s50:#EBF7F9;--s100:#C2EAF1;--s200:#87D4E3;--s300:#4BBDD3;
@@ -427,7 +424,7 @@ tbody tr:hover td.cc-td{background:transparent}
       </div>
     </div>
 
-    <div class="auth-tabs">
+    <div class="auth-tabs" id="auth-tabs">
       <button class="auth-tab active" id="tab-login" onclick="switchAuth('login')">เข้าสู่ระบบ</button>
       <button class="auth-tab" id="tab-reg" onclick="switchAuth('reg')">สมัครสมาชิก</button>
     </div>
@@ -439,7 +436,24 @@ tbody tr:hover td.cc-td{background:transparent}
       <div class="auth-err" id="lg-err"></div>
       <button class="btn btn-primary auth-btn" id="lg-btn" onclick="doLogin()"><i class="ti ti-login"></i> เข้าสู่ระบบ</button>
       <button class="btn btn-ghost auth-btn" id="lg-retry" style="display:none;margin-top:6px" onclick="retryAuth()"><i class="ti ti-refresh"></i> ลองใหม่</button>
-      <div class="auth-foot" style="margin-top:10px">ลืมรหัสผ่าน? แจ้งผู้ดูแลระบบให้รีเซ็ตรหัสผ่านจากเมนู "จัดการผู้ใช้"</div>
+      <button class="btn btn-ghost auth-btn" id="lg-forgot" style="margin-top:8px" onclick="showForgot()">ลืมรหัสผ่าน</button>
+    </div>
+
+    <div id="auth-forgot" style="display:none">
+      <div class="auth-field"><label for="fg-user">อีเมลที่ใช้เข้าสู่ระบบ</label><input id="fg-user" inputmode="email" autocomplete="username email" autocapitalize="none" spellcheck="false" placeholder="name@gmail.com" onkeydown="if(event.key==='Enter')doForgot()"></div>
+      <div class="auth-note"><i class="ti ti-info-circle"></i> ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลนี้ ลิงก์ใช้ได้ 30 นาทีและใช้ได้ครั้งเดียว บัญชีที่ไม่มีอีเมลให้ผู้ดูแลรีเซ็ตจากเมนูจัดการผู้ใช้</div>
+      <div class="auth-err" id="fg-err"></div>
+      <button class="btn btn-primary auth-btn" id="fg-btn" onclick="doForgot()"><i class="ti ti-mail"></i> ส่งลิงก์รีเซ็ตรหัสผ่าน</button>
+      <button class="btn btn-ghost auth-btn" style="margin-top:8px" onclick="switchAuth('login')">กลับไปเข้าสู่ระบบ</button>
+    </div>
+
+    <div id="auth-reset" style="display:none">
+      <div class="auth-note"><i class="ti ti-key"></i> ตั้งรหัสผ่านใหม่ ลิงก์นี้ใช้ได้ครั้งเดียว</div>
+      <div class="auth-field"><label for="rs-pass">รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</label><input id="rs-pass" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+      <div class="auth-field"><label for="rs-pass2">ยืนยันรหัสผ่านใหม่</label><input id="rs-pass2" type="password" autocomplete="new-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doReset()"></div>
+      <div class="auth-err" id="rs-err"></div>
+      <button class="btn btn-primary auth-btn" id="rs-btn" onclick="doReset()"><i class="ti ti-check"></i> บันทึกรหัสผ่านใหม่</button>
+      <button class="btn btn-ghost auth-btn" style="margin-top:8px" onclick="cancelReset()">กลับไปเข้าสู่ระบบ</button>
     </div>
 
     <!-- REGISTER -->
@@ -914,28 +928,15 @@ tbody tr:hover td.cc-td{background:transparent}
 
 <div id="toast" class="no-print"></div>
 
+<script src="hrms-db.js"></script>
 <script>
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDjVKopoyPk4MqXlqMYh533H_SBTjCWiAU",
-  authDomain: "hw-return.firebaseapp.com",
-  projectId: "hw-return",
-  storageBucket: "hw-return.firebasestorage.app",
-  messagingSenderId: "887038808223",
-  appId: "1:887038808223:web:9a736323bdf7de7b36d2aa",
-  measurementId: "G-3G0GRDHVZ8"
-};
-const firebaseApp = window.firebase ? firebase.initializeApp(firebaseConfig) : null;
-let firebaseAnalytics = null;
-if (firebaseApp && firebase.analytics && location.protocol !== 'file:') {
-  firebaseAnalytics = firebase.analytics();
-}
-// ?demo=1 → โหมดทดลอง: ไม่เชื่อม Firestore ใช้ข้อมูลตัวอย่างในเครื่องเท่านั้น
+// ข้อมูลจริงอยู่ที่ PostgreSQL ผ่าน API เดียวกันกับหน้าเว็บ (/Huawei-Return/api)
+// เบราว์เซอร์ไม่ต่อฐานข้อมูลตรง ๆ — ตัวแปร firebaseDb คือตัวเชื่อมชุดนั้น (ชื่อเดิมเพื่อไม่แตะจุดเรียกทั้งไฟล์)
+// ?demo=1 → โหมดทดลอง: ไม่เชื่อม API ใช้ข้อมูลตัวอย่างในเครื่องเท่านั้น
 const DEMO = /[?&]demo=1/.test(location.search);
-const firebaseDb = (!DEMO && firebaseApp && firebase.firestore) ? firebase.firestore() : null;
-// enablePersistence ต้องเป็นคำสั่ง Firestore แรกเสมอ (แคชใน IndexedDB ไม่มีเพดาน 5 MB แบบ localStorage)
+const firebaseDb = (!DEMO && location.protocol !== 'file:' && window.HrmsDb) ? HrmsDb.connect() : null;
 if (firebaseDb) firebaseDb.enablePersistence({synchronizeTabs:true}).catch(e=>console.warn('persistence off', e.code));
-const FV = firebaseDb ? firebase.firestore.FieldValue : null;
+const FV = firebaseDb ? HrmsDb.FieldValue : null;
 const CASES_COLLECTION = 'return_cases';
 
 // ═══════════════════════════════════════
@@ -1038,7 +1039,7 @@ let caseFilter = 'all';
 let formRole = 'all';
 
 // ═══════════════════════════════════════
-//  AUTH & ROLES — บัญชีกลางใน Firestore (collection users) + ผู้ดูแลอนุมัติ (ไม่ใช้ Firebase Auth)
+//  AUTH & ROLES — บัญชีกลางใน Firestore (เอกสาร user~ ใน return_cases) + ผู้ดูแลอนุมัติ (ไม่ใช้ Firebase Auth)
 // ═══════════════════════════════════════
 // สิทธิ์ฝั่งหน้าเว็บเท่านั้น — ฐานข้อมูลยังไม่มีการยืนยันตัวตนฝั่งเซิร์ฟเวอร์ (ดู firestore.rules)
 const ROLES = {
@@ -1049,7 +1050,11 @@ const ROLES = {
 };
 let me = null; // {username,name,role} — role มาจากโปรไฟล์กลางเสมอ ไม่อ่านจาก localStorage
 let profileUnsub = null, authBusy = false, userSaving = false, usersSeq = 0;
-const USERS_COLLECTION = 'users';
+// บัญชีเก็บเป็นเอกสารใน collection เดียวกับเคส (return_cases) — id = ACCT_PREFIX + อีเมล
+// ใช้ได้ทันทีกับ rules เดิมของโปรเจกต์ที่เปิดเฉพาะ return_cases (ไม่ต้องเข้า Firebase Console เพิ่ม collection users)
+// ACCT_INDEX = รายชื่อบัญชีทั้งหมด (ตรวจ "ยังไม่มีบัญชี" + หน้าจัดการผู้ใช้) · listener เคสข้ามเอกสารเหล่านี้ (isAcctId)
+const ACCT_PREFIX = 'user~', ACCT_INDEX = 'user~~index';
+const isAcctId = id => typeof id === 'string' && id.startsWith(ACCT_PREFIX);
 // บัญชี = อีเมลทั่วไป (Gmail / Hotmail / อีเมลบริษัท) — ไม่ต้องตั้งค่าใด ๆ เพิ่ม; ชื่อผู้ใช้แบบเดิม (เช่น demo.admin) ยังเข้าได้
 const USERNAME_RE = /^[a-z0-9._-]{3,30}$/;
 const EMAIL_RE = /^[a-z0-9._+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
@@ -1061,51 +1066,72 @@ const LOGOUT_REASON_KEY = 'hrms_logout_reason', IDLE_MSG = 'ออกจาก�
 const LOGOUT_MSG = {idle:IDLE_MSG, suspended:'บัญชีของคุณถูกระงับ — ติดต่อผู้ดูแล'};
 const codeErr = (code, msg) => Object.assign(new Error(msg || code), {code});
 
-// ── Users adapter: Firestore users/{username} · ไม่มี firebaseDb (โหมดทดลอง / โหลด Firebase ไม่ได้) → localStorage 'hrms_demo_users'
+// ── Users adapter: Firestore return_cases/user~{username} · ไม่มี firebaseDb (โหมดทดลอง / โหลด Firebase ไม่ได้) → localStorage 'hrms_demo_users'
 // อ่านจากเซิร์ฟเวอร์เสมอ (source:'server') — ไม่ใช้แคชในเครื่องตัดสินสิทธิ์ ออฟไลน์จึง error แทนการใช้ข้อมูลเก่า
 const Users = {
-  _ref(u){ return firebaseDb.collection(USERS_COLLECTION).doc(u); },
+  _ref(u){ return firebaseDb.collection(CASES_COLLECTION).doc(ACCT_PREFIX + u); },
+  _idx(){ return firebaseDb.collection(CASES_COLLECTION).doc(ACCT_INDEX); },
+  _names(s){ const a = s.exists && s.data().users; return Array.isArray(a) ? a.filter(x => USER_RE.test(x)) : []; },
+  // เอกสารบัญชีเก็บวันสมัครเป็น acctCreatedAt (ไม่มีช่อง createdAt) — แอปรุ่นเก่าที่โหลดเคสด้วย orderBy('createdAt')
+  // จึงไม่ดึงเอกสารบัญชีไปเป็นเคส/เขียนทับ · ภายในแอปยังใช้ชื่อ createdAt ตามเดิม (แปลงที่นี่ที่เดียว)
+  _out(d, u){ const {acctCreatedAt, ...r} = d || {}; return {...r, createdAt: acctCreatedAt || r.createdAt || '', username:u}; },
   _load(){ try { const o = JSON.parse(localStorage.getItem('hrms_demo_users') || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch(e){ return {}; } },
   _save(o){ localStorage.setItem('hrms_demo_users', JSON.stringify(o)); },
   async get(u){
     u = String(u || '').trim().toLowerCase();
     if(!USER_RE.test(u)) return null;
-    if(!firebaseDb){ const p = this._load()[u]; return p ? {...p, username:u} : null; }
+    if(!firebaseDb){ const p = this._load()[u]; return p ? this._out(p, u) : null; }
     const s = await this._ref(u).get({source:'server'});
-    return s.exists ? {...s.data(), username:u} : null;
+    return s.exists ? this._out(s.data(), u) : null;
   },
   // สร้างใหม่เท่านั้น: มีเอกสารอยู่แล้ว → throw code 'exists' (get ใน transaction จึงไม่เขียนทับบัญชีเดิม แม้สมัครพร้อมกัน)
+  // บัญชี + รายชื่อใน ACCT_INDEX เขียนใน transaction เดียวกัน · รายชื่อเขียนก่อนและใช้ arrayUnion (ฐานข้อมูลเดโมเขียนทีละเอกสาร:
+  // ถ้าหลุดกลางทางเหลือแค่ชื่อที่ไม่มีบัญชี ซึ่ง list() ข้ามไป) · บัญชีมีอยู่แต่ไม่อยู่ในรายชื่อ → เติมชื่อให้แล้วจึงแจ้ง 'exists'
   async create(u, data){
     u = String(u || '').trim().toLowerCase();
     if(!USER_RE.test(u)) throw codeErr('invalid', 'อีเมลไม่ถูกต้อง');
-    const doc = {...data, username:u};
+    const {createdAt, ...rest} = data;
+    const doc = {...rest, acctCreatedAt: createdAt || new Date().toISOString(), username:u};
     if(!firebaseDb){ const o = this._load(); if(o[u]) throw codeErr('exists'); o[u] = doc; this._save(o); return; }
-    const ref = this._ref(u);
-    await firebaseDb.runTransaction(async t => { const s = await t.get(ref); if(s.exists) throw codeErr('exists'); t.set(ref, doc); });
+    const ref = this._ref(u), idx = this._idx();
+    const r = await firebaseDb.runTransaction(async t => {
+      const s = await t.get(ref), x = await t.get(idx);
+      if(!this._names(x).includes(u)) t.set(idx, {users:FV.arrayUnion(u), updatedAt:new Date().toISOString()}, {merge:true});
+      if(s.exists) return 'exists';
+      t.set(ref, doc);
+      return 'ok';
+    });
+    if(r === 'exists') throw codeErr('exists');
   },
   async update(u, patch){
-    if(!firebaseDb){ const o = this._load(); if(!o[u]) throw codeErr('not-found', 'ไม่พบผู้ใช้ ' + u); Object.assign(o[u], patch); this._save(o); return; }
-    await this._ref(u).update(patch);
+    const {createdAt, ...p} = patch;   // วันสมัครเปลี่ยนไม่ได้
+    if(!firebaseDb){ const o = this._load(); if(!o[u]) throw codeErr('not-found', 'ไม่พบผู้ใช้ ' + u); Object.assign(o[u], p); this._save(o); return; }
+    await this._ref(u).update(p);
   },
+  // เรียงตามลำดับการสมัคร (ลำดับในรายชื่อ) — ชื่อแรกคือบัญชีแรกของระบบ
   async list(){
-    if(!firebaseDb){ const o = this._load(); return Object.keys(o).map(k => ({...o[k], username:k})); }
-    const s = await firebaseDb.collection(USERS_COLLECTION).get({source:'server'});
-    return s.docs.map(d => ({...d.data(), username:d.id}));
+    if(!firebaseDb){ const o = this._load(); return Object.keys(o).map(k => this._out(o[k], k)); }
+    if(typeof firebaseDb.listUsers === 'function'){
+      const rows = await firebaseDb.listUsers();
+      return rows.map(s => this._out(s.body || {}, String(s.id || '').slice(ACCT_PREFIX.length)));
+    }
+    const names = this._names(await this._idx().get({source:'server'}));
+    const snaps = await Promise.all(names.map(n => this._ref(n).get({source:'server'})));
+    return snaps.filter(s => s.exists).map(s => this._out(s.data(), s.id.slice(ACCT_PREFIX.length)));
   },
   async isEmpty(){
     if(!firebaseDb) return !Object.keys(this._load()).length;
-    const s = await firebaseDb.collection(USERS_COLLECTION).limit(1).get({source:'server'});
-    return s.empty;
+    return !this._names(await this._idx().get({source:'server'})).length;
   },
   // ติดตามโปรไฟล์ของตัวเอง คืนฟังก์ชันยกเลิก — ข้าม snapshot จากแคช (ตัดสินจากข้อมูลเซิร์ฟเวอร์เท่านั้น)
   watch(u, cb){
-    if(!firebaseDb){ const t = setTimeout(() => { const p = this._load()[u]; cb(p ? {...p, username:u} : null); }, 0); return () => clearTimeout(t); }
-    return this._ref(u).onSnapshot(s => { if(s.metadata.fromCache) return; cb(s.exists ? {...s.data(), username:u} : null); }, e => console.warn('profile watch', e));
+    if(!firebaseDb){ const t = setTimeout(() => { const p = this._load()[u]; cb(p ? this._out(p, u) : null); }, 0); return () => clearTimeout(t); }
+    return this._ref(u).onSnapshot(s => { if(s.metadata.fromCache) return; cb(s.exists ? this._out(s.data(), u) : null); }, e => console.warn('profile watch', e));
   }
 };
 
 // ── รหัสผ่าน (salt สุ่มต่อผู้ใช้) — ไม่มี crypto.subtle (เปิดผ่าน http) = ไม่ให้สมัคร/เข้าระบบ ไม่ถอยไปใช้ hash อ่อน
-// G05 ความเสี่ยงที่ยอมรับ: ไม่มีการยืนยันตัวตนฝั่งเซิร์ฟเวอร์ (ไม่ใช้ Firebase Auth) — collection users อ่านได้ด้วย config สาธารณะ
+// G05 ความเสี่ยงที่ยอมรับ: ไม่มีการยืนยันตัวตนฝั่งเซิร์ฟเวอร์ (ไม่ใช้ Firebase Auth) — เอกสารบัญชีอ่านได้ด้วย config สาธารณะ
 // hashVer 3 = PBKDF2-SHA256 150,000 รอบ (เดาแบบออฟไลน์ช้าลงมาก) · hashVer 2 (SHA-256 รอบเดียว) ยังเข้าได้ และถูกอัปเกรดเป็น 3 เมื่อเข้าระบบครั้งถัดไป
 // ทางแก้จริง = Firebase Authentication หรือ Cloud Function สำหรับ login
 const PW_ITER = 150000;
@@ -1131,7 +1157,7 @@ function userWrite(p){ return Promise.race([p, new Promise((_, rej) => setTimeou
 
 // ── เซสชันในเครื่อง: username + เวลาเข้า + หมดอายุ 12 ชม. (ไม่เก็บ role) — เปิดระบบทุกครั้งอ่านโปรไฟล์กลางใหม่
 // sig ผูกกับ hash รหัสผ่านปัจจุบัน: เปลี่ยน/รีเซ็ตรหัสผ่านแล้วเซสชันเดิมทุกเครื่องใช้ไม่ได้ (ตรวจตอนเปิดระบบ)
-// G05 ข้อจำกัด: hash อ่านได้จาก collection users จึงสร้าง sig ปลอมได้ — sig กันได้แค่การแก้ username/exp ใน localStorage แบบทั่วไป ไม่ใช่การป้องกันจริง
+// G05 ข้อจำกัด: hash อ่านได้จากเอกสารบัญชี จึงสร้าง sig ปลอมได้ — sig กันได้แค่การแก้ username/exp ใน localStorage แบบทั่วไป ไม่ใช่การป้องกันจริง
 //   (ทำ secret ฝั่งเซิร์ฟเวอร์ในหน้าเว็บไม่ได้ — ต้องใช้ Firebase Auth / Cloud Function)
 async function sessSig(p, loginAt, exp){ return toHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('sess:' + p.pass + ':' + p.username + ':' + loginAt + ':' + exp))); }
 function readSess(){ try { const s = JSON.parse(localStorage.getItem(SESS_KEY) || 'null'); return (s && typeof s.username === 'string' && typeof s.sig === 'string' && +s.exp > Date.now()) ? s : null; } catch(e){ return null; } }
@@ -1155,10 +1181,14 @@ function lastEdit(r){ const h = (r && r.history) || []; for(let i = h.length - 1
 function docKB(o){ try { return Math.round(new TextEncoder().encode(JSON.stringify(o, (k,v) => k.charAt(0) === '_' ? undefined : v) || '').length / 1024); } catch(e){ return 0; } }
 
 function switchAuth(t){
-  document.getElementById('tab-login').classList.toggle('active', t==='login');
-  document.getElementById('tab-reg').classList.toggle('active', t==='reg');
-  document.getElementById('auth-login').style.display = t==='login'?'':'none';
-  document.getElementById('auth-reg').style.display = t==='reg'?'':'none';
+  const login = t==='login', reg = t==='reg', forgot = t==='forgot', reset = t==='reset';
+  document.getElementById('tab-login').classList.toggle('active', login);
+  document.getElementById('tab-reg').classList.toggle('active', reg);
+  $id('auth-tabs').style.display = (forgot || reset) ? 'none' : '';
+  document.getElementById('auth-login').style.display = login ? '' : 'none';
+  document.getElementById('auth-reg').style.display = reg ? '' : 'none';
+  $id('auth-forgot').style.display = forgot ? '' : 'none';
+  $id('auth-reset').style.display = reset ? '' : 'none';
 }
 // ── ข้อความในหน้าเข้าสู่ระบบ: kind 'ok' = เขียว, 'info' = เทา, ไม่ระบุ = แดง (สีจาก .auth-err)
 function authMsg(el, text, kind){
@@ -1168,17 +1198,17 @@ function authMsg(el, text, kind){
 }
 function netMsg(e){
   const c = e && e.code;
-  if(c === 'permission-denied') return 'ฐานข้อมูลไม่อนุญาตให้อ่าน/เขียนบัญชีผู้ใช้ (permission-denied) — แจ้งผู้ดูแลตรวจ firestore.rules';
+  if(c === 'permission-denied') return 'ฐานข้อมูลไม่อนุญาตให้บันทึก (permission-denied)';
   if(c === 'unavailable' || c === 'deadline-exceeded' || !navigator.onLine) return 'เชื่อมต่อฐานข้อมูลไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่';
   return (e && e.message) || String(e);
 }
 // ต้องมี crypto.subtle (https) และฐานข้อมูลกลาง (ยกเว้นโหมดทดลอง) ก่อนสมัคร/เข้าระบบ
 function authReady(err){
   if(!hasSubtle()){ authMsg(err, 'ต้องเปิดระบบผ่าน https เท่านั้น'); return false; }
-  if(!firebaseDb && !DEMO){ authMsg(err, 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ (โหลด Firebase ไม่สำเร็จ) — ตรวจอินเทอร์เน็ตแล้วกด ลองใหม่'); $id('lg-retry').style.display = ''; return false; }
+  if(!firebaseDb && !DEMO){ authMsg(err, 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ — ตรวจว่า API /Huawei-Return/api ทำงาน แล้วกด ลองใหม่'); $id('lg-retry').style.display = ''; return false; }
   return true;
 }
-function setAuthBusy(b){ authBusy = b; ['lg-btn','rg-btn'].forEach(id => { const x = $id(id); if(x) x.disabled = b; }); }
+function setAuthBusy(b){ authBusy = b; ['lg-btn','rg-btn','fg-btn','rs-btn'].forEach(id => { const x = $id(id); if(x) x.disabled = b; }); }
 function profileProblem(p){
   if(!p) return 'ไม่พบบัญชีผู้ใช้';
   if(p.status === 'pending') return 'บัญชีรอผู้ดูแลอนุมัติ';
@@ -1215,7 +1245,7 @@ async function doRegister(){
       await userWrite(Users.create(user, doc));
       const up = {role:'admin', status:'active', approvedBy:'bootstrap', approvedAt:now, lastLoginAt:now};
       try { await userWrite(Users.update(user, up)); }
-      catch(e2){ console.warn(e2); authMsg(err, 'สร้างบัญชีแล้ว แต่ตั้งเป็นผู้ดูแลระบบไม่สำเร็จ (' + netMsg(e2) + ') — ให้ผู้ดูแลฐานข้อมูลตั้ง role = admin, status = active ให้บัญชี ' + user); return; }
+      catch(e2){ console.warn(e2); switchAuth('login'); $id('lg-user').value = user; $id('rg-pass').value = ''; authMsg('lg-err', 'สร้างบัญชีแล้ว แต่ตั้งเป็นผู้ดูแลระบบยังไม่เสร็จ (' + netMsg(e2) + ') — เข้าสู่ระบบด้วยอีเมลและรหัสผ่านนี้อีกครั้งเพื่อทำให้เสร็จ'); return; }
       Object.assign(doc, up);
       await writeSess({...doc, username:user}); authMsg(err, '');
       $id('rg-pass').value = '';
@@ -1242,6 +1272,15 @@ async function doLogin(){
   try {
     const p = await Users.get(user);
     if(!(await checkPw(p, pass))){ authMsg(err, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
+    // บัญชีแรกของระบบที่ตั้งเป็นผู้ดูแลไม่เสร็จตอนสมัคร (ขั้นที่สองหลุด) → ทำต่อให้ตอนเข้าระบบ
+    // เฉพาะชื่อแรกในรายชื่อบัญชี ที่ยังไม่เคยถูกอนุมัติ และระบบยังไม่มีผู้ดูแลที่ใช้งานอยู่เลย
+    if(firebaseDb && p.status === 'pending' && !p.approvedBy){
+      const l = await Users.list();
+      if(l.length && l[0].username === p.username && !l.some(x => x.status === 'active' && x.role === 'admin')){
+        const up = {role:'admin', status:'active', approvedBy:'bootstrap', approvedAt:new Date().toISOString()};
+        await userWrite(Users.update(p.username, up)); Object.assign(p, up);
+      }
+    }
     const why = profileProblem(p); if(why){ authMsg(err, why); return; }
     // G05 อัปเกรด hash เดิม (hashVer 2) เป็น PBKDF2 — ใช้ hash ใหม่กับเซสชันเฉพาะเมื่อเขียนขึ้นเซิร์ฟเวอร์สำเร็จ ไม่งั้นใช้ต่อแบบเดิม
     // อัปเกรดอัตโนมัติเริ่มตั้งแต่ PW3_UPGRADE_FROM เท่านั้น — ไฟล์แอปรุ่นก่อน (แท็บที่เปิดค้าง / ไฟล์ HTML ที่ดาวน์โหลดไว้) ตรวจ hashVer 3 ไม่เป็น
@@ -1257,8 +1296,71 @@ async function doLogin(){
   } catch(e){ console.warn(e); authMsg(err, 'เข้าสู่ระบบไม่สำเร็จ: ' + netMsg(e)); }
   finally { setAuthBusy(false); }
 }
+let resetToken = '';
+function showForgot(){
+  switchAuth('forgot');
+  const user = ($id('lg-user').value || '').trim().toLowerCase();
+  if(user && !$id('fg-user').value) $id('fg-user').value = user;
+  authMsg('fg-err', '');
+  $id('fg-user').focus();
+}
+async function authApi(path, body){
+  const base = (window.HrmsDb && HrmsDb.apiBase) ? HrmsDb.apiBase() : '/Huawei-Return/api';
+  let res;
+  try {
+    res = await fetch(base + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), cache:'no-store' });
+  } catch(e) { throw codeErr('unavailable', 'เชื่อมต่อ API ไม่ได้'); }
+  const json = await res.json().catch(() => ({}));
+  if(!res.ok) throw codeErr(json.code || 'unknown', json.error || ('API ' + res.status));
+  return json;
+}
+async function doForgot(){
+  const user = ($id('fg-user').value || '').trim().toLowerCase();
+  const err = $id('fg-err'); authMsg(err, '');
+  if(authBusy || !authReady(err)) return;
+  if(!user){ authMsg(err, 'กรุณากรอกอีเมลที่ใช้เข้าสู่ระบบ'); return; }
+  setAuthBusy(true); authMsg(err, 'กำลังส่งลิงก์…', 'info');
+  try {
+    await authApi('/auth/forgot', {username:user});
+    authMsg(err, 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว ลิงก์ใช้ได้ 30 นาที', 'ok');
+  } catch(e){ console.warn(e); authMsg(err, e.message || 'ส่งอีเมลไม่สำเร็จ'); }
+  finally { setAuthBusy(false); }
+}
+function showReset(token){
+  resetToken = String(token || '');
+  switchAuth('reset');
+  authMsg('rs-err', '');
+  const err = $id('rs-err');
+  if(!authReady(err)) return;
+}
+function cancelReset(){
+  resetToken = '';
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  switchAuth('login');
+}
+async function doReset(){
+  const p1 = $id('rs-pass').value || '';
+  const p2 = $id('rs-pass2').value || '';
+  const err = $id('rs-err'); authMsg(err, '');
+  if(authBusy || !authReady(err)) return;
+  if(p1.length < 6){ authMsg(err, 'รหัสผ่านอย่างน้อย 6 ตัว'); return; }
+  if(p1 !== p2){ authMsg(err, 'รหัสผ่านไม่ตรงกัน'); return; }
+  setAuthBusy(true); authMsg(err, 'กำลังบันทึก…', 'info');
+  try {
+    const result = await authApi('/auth/reset', {token:resetToken, password:p1});
+    $id('rs-pass').value = ''; $id('rs-pass2').value = '';
+    resetToken = '';
+    try { history.replaceState(null, '', location.pathname); } catch(e){}
+    switchAuth('login');
+    if(result && result.username) $id('lg-user').value = result.username;
+    authMsg('lg-err', 'ตั้งรหัสผ่านใหม่แล้ว เข้าสู่ระบบด้วยรหัสผ่านนี้', 'ok');
+  } catch(e){ console.warn(e); authMsg(err, e.message || 'ตั้งรหัสผ่านไม่สำเร็จ'); }
+  finally { setAuthBusy(false); }
+}
 // เปิดระบบ: เซสชันที่ยังไม่หมดอายุ → อ่านโปรไฟล์กลางใหม่ทุกครั้ง (บทบาทมาจากฐานข้อมูล ไม่ใช่จากเครื่อง) — อ่านไม่ได้ = ไม่เข้าระบบด้วยข้อมูลเก่า
 async function bootAuth(){
+  const resetToken = new URLSearchParams(location.search).get('reset') || '';
+  if(resetToken){ showReset(resetToken); return; }
   const err = $id('lg-err');
   $id('lg-retry').style.display = 'none';
   if(!authReady(err)) return;
@@ -1387,7 +1489,7 @@ function applyPerms(){
   document.querySelector('.role-tabs').style.display = cap('editAll')?'':'none';
 }
 
-// ── USERS PAGE (admin) — รายชื่อจาก collection users กลาง · ไม่มีการลบจริง (เก็บร่องรอยไว้ ใช้ ระงับ แทน) ──
+// ── USERS PAGE (admin) — รายชื่อจากบัญชีกลาง (ACCT_INDEX) · ไม่มีการลบจริง (เก็บร่องรอยไว้ ใช้ ระงับ แทน) ──
 const USER_ST = {pending:['รออนุมัติ','#C07A10'], active:['ใช้งาน','#0F6E56'], suspended:['ระงับ','#A32D2D']};
 const roleLabel = r => ROLES[r] ? ROLES[r].label : (r || '—');
 const fmtDT = d => { if(!d) return ''; const t = new Date(d); return isNaN(t) ? String(d) : t.toLocaleString('th-TH', {day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'}); };
@@ -1685,7 +1787,7 @@ async function patchCase(id, fields, actions, opts){
 //  และไม่เขียน SEED ขึ้นฐานข้อมูลจริงอีกต่อไป
 // ═══════════════════════════════════════
 let casesUnsub = null, casesSynced = false, booted = false, bootStarted = false, refreshT = null;
-function splitDocs(docs){ const all = docs.map(d => ({id:d.id, ...d.data()})); trash = all.filter(c => c.deleted); cases = all.filter(c => !c.deleted); }
+function splitDocs(docs){ const all = docs.filter(d => !isAcctId(d.id)).map(d => ({id:d.id, ...d.data()})); trash = all.filter(c => c.deleted); cases = all.filter(c => !c.deleted); }
 function applyChange(ch){
   const id = ch.doc.id;
   let i = cases.findIndex(x => x.id === id); if(i > -1) cases.splice(i, 1);
@@ -1711,8 +1813,8 @@ function loadCases(){
     let first = true, live = false;
     casesUnsub = firebaseDb.collection(CASES_COLLECTION).onSnapshot({includeMetadataChanges:true}, snap => {
       casesFromCache = snap.metadata.fromCache; if(!casesFromCache) casesSynced = true;
-      if(first && casesFromCache && snap.empty){ setSyncBadge(); return; }   // แคชว่าง — รอข้อมูลจากเซิร์ฟเวอร์
-      const ch = snap.docChanges();
+      if(first && casesFromCache && snap.docs.every(d => isAcctId(d.id))){ setSyncBadge(); return; }   // แคชไม่มีเคส (มีแต่บัญชีจากหน้าเข้าระบบ) — รอข้อมูลจากเซิร์ฟเวอร์
+      const ch = snap.docChanges().filter(c => !isAcctId(c.doc.id));   // เอกสารบัญชีผู้ใช้ไม่ใช่เคส
       const notify = !first && booted && live && ch.length <= 200;
       // B9-3 id ของข้อความถาม-ตอบก่อนรับการเปลี่ยนแปลง — ข้อความใหม่ = id ที่ไม่เคยมี (ไม่ใช้ตำแหน่ง/เวลาจากนาฬิกาเครื่องผู้ส่ง)
       const prevIds = new Map();
@@ -4483,7 +4585,7 @@ async function bootApp() {
   catch(e){ clearTimeout(bootT); console.error(e); msg.textContent = 'โหลดข้อมูลไม่ได้: ' + e.message; retry.style.display = ''; return; }
   clearTimeout(bootT); ov.style.display = 'none'; booted = true;
   const ob = $id('offline-bar');
-  if(!firebaseDb && !DEMO){ ob.textContent = 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ (โหลด Firebase ไม่สำเร็จ) — บันทึกไม่ได้ ตรวจอินเทอร์เน็ตแล้วโหลดหน้าใหม่'; ob.style.display = ''; }
+  if(!firebaseDb && !DEMO){ ob.textContent = 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ — บันทึกไม่ได้ ตรวจว่า API /Huawei-Return/api ทำงานแล้วโหลดหน้าใหม่'; ob.style.display = ''; }
   else if(DEMO){ ob.textContent = 'โหมดทดลอง — ข้อมูลตัวอย่าง ไม่บันทึกขึ้นระบบ'; ob.style.display = ''; }
   setSyncBadge();
   buildStatusSelect('สร้างคำขอคืน');

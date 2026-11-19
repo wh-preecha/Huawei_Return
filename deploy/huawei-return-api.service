@@ -1,0 +1,16 @@
+[Unit]
+Description=Huawei Return API (PostgreSQL)
+After=network.target
+
+[Service]
+User=whs
+Group=whs
+WorkingDirectory=/opt/huawei-return/api
+EnvironmentFile=/opt/huawei-return/api/.env
+ExecStart=/usr/local/bin/node /opt/huawei-return/api/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

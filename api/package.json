@@ -1,0 +1,17 @@
+{
+  "name": "huawei-return-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Batch API in front of PostgreSQL for Huawei Return Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node logic.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
