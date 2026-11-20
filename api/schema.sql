@@ -80,6 +80,11 @@ CREATE INDEX IF NOT EXISTS docs_serial_pattern_idx ON docs (lower(serial) text_p
 CREATE INDEX IF NOT EXISTS docs_sku_pattern_idx ON docs (lower(sku) text_pattern_ops);
 CREATE INDEX IF NOT EXISTS docs_cc_pattern_idx ON docs (lower(cc_no) text_pattern_ops);
 CREATE INDEX IF NOT EXISTS docs_claim_pattern_idx ON docs (lower(claim_no) text_pattern_ops);
+-- Paged case list: one page ordered by last update, optionally inside one status.
+CREATE INDEX IF NOT EXISTS docs_case_live_updated_idx ON docs (updated_at DESC, id DESC) WHERE kind = 'case' AND deleted = false;
+CREATE INDEX IF NOT EXISTS docs_case_live_status_updated_idx ON docs (status, updated_at DESC, id DESC) WHERE kind = 'case' AND deleted = false;
+CREATE INDEX IF NOT EXISTS docs_case_live_received_idx ON docs (received_date, updated_at DESC) WHERE kind = 'case' AND deleted = false;
+CREATE INDEX IF NOT EXISTS docs_case_trash_updated_idx ON docs (updated_at DESC, id DESC) WHERE kind = 'case' AND deleted = true;
 
 CREATE TABLE IF NOT EXISTS password_resets (
   token_hash text PRIMARY KEY,

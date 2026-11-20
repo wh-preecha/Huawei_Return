@@ -27,7 +27,7 @@ const pool = new Pool({
   database: process.env.PGDATABASE || 'huawei_return',
   user: process.env.PGUSER || '',
   password: process.env.PGPASSWORD || '',
-  max: Number(process.env.PGPOOL || 4),
+  max: Number(process.env.PGPOOL || 10),
   connectionTimeoutMillis: 8000,
   idleTimeoutMillis: 30000,
   application_name: 'huawei-return',
@@ -111,7 +111,14 @@ function clampLimit(value) {
 
 async function migrate() {
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  await pool.query(sql);
+  const client = await pool.connect();
+  try {
+    await client.query("SET statement_timeout = '120s'");
+    await client.query(sql);
+    await client.query('ANALYZE docs');
+  } finally {
+    client.release();
+  }
 }
 
 async function nextRev(client) {
@@ -136,6 +143,20 @@ async function applyOps(client, ops) {
     if (op.op === 'update' && !exists) throw logic.httpError(404, 'not-found', 'ไม่พบเอกสาร ' + id);
     if (op.op === 'set' && logic.isUserDoc(id) && exists) throw logic.httpError(409, 'exists', 'บัญชีนี้มีแล้ว');
     const next = logic.applyPatch(prev, op.data || {}, op.op === 'set' ? 'set' : 'merge');
+    const selfDept = ['sales', 'wh', 'ipqc'];
+    if (logic.isUserDoc(id) && !exists && next.role !== 'admin') {
+      const asked = selfDept.includes(next.role) ? next.role : (selfDept.includes(next.requestedRole) ? next.requestedRole : '');
+      if (asked) {
+        next.role = asked;
+        next.requestedRole = asked;
+        next.status = 'active';
+      }
+    }
+    const wasAdmin = !!(prev && prev.role === 'admin');
+    const signupAdmin = logic.isUserDoc(id) && next.role === 'admin' && !wasAdmin && (!exists || next.approvedBy === 'bootstrap');
+    if (signupAdmin) {
+      throw logic.httpError(403, 'permission-denied', 'สมัครเป็นผู้ดูแลระบบไม่ได้');
+    }
     const raw = JSON.stringify(next);
     if (Buffer.byteLength(raw) > MAX_DOC) throw logic.httpError(413, 'invalid-argument', 'เอกสาร ' + id + ' ใหญ่เกินไป');
     if (exists) {
@@ -215,19 +236,348 @@ async function listUsers() {
 
 const SEARCH_COLS = ['invoice_no', 'order_no', 'pa_no', 'ro_no', 'cn_no', 'tracking', 'return_tracking', 'serial', 'sku', 'cc_no', 'claim_no'];
 
-async function searchCases(q, limit) {
-  const term = String(q || '').trim().toLowerCase();
+function normTerm(q) {
+  return String(q || '').trim().toLowerCase().replace(/[\s\-]/g, '');
+}
+
+function likePrefix(term) {
+  return term.replace(/[\\%_]/g, ch => '\\' + ch) + '%';
+}
+
+async function searchCases(q, limit, deleted) {
+  const term = normTerm(q);
   if (term.length < 2 || term.length > 80) return { docs: [] };
-  const prefix = term.replace(/[\\%_]/g, ch => '\\' + ch) + '%';
+  const prefix = likePrefix(term);
   const parts = SEARCH_COLS.map(col => `lower(${col}) LIKE $1 ESCAPE '\\'`);
   const result = await pool.query(
     `SELECT id, body, rev FROM docs
-     WHERE kind = 'case' AND (${parts.join(' OR ')})
-     ORDER BY updated_at DESC NULLS LAST
+     WHERE kind = 'case' AND deleted = $3 AND (${parts.join(' OR ')})
+     ORDER BY (lower(invoice_no) = $4 OR lower(order_no) = $4 OR lower(tracking) = $4 OR lower(serial) = $4) DESC,
+              updated_at DESC NULLS LAST
      LIMIT $2`,
-    [prefix, limit]
+    [prefix, limit, !!deleted, term]
   );
   return { docs: result.rows.map(row => ({ id: row.id, rev: row.rev, body: row.body })) };
+}
+
+const SLIM = `
+  id, status, deleted,
+  invoice_no AS "invoiceNo", order_no AS "orderNo", pa_no AS "paNo", ro_no AS "roNo",
+  cn_no AS "cnNo", tracking, return_tracking AS "returnTracking", serial, sku,
+  cc_no AS "ccNo", claim_no AS "claimNo", platform,
+  received_date AS "receivedDate", stock_date AS "stockDate",
+  created_at AS "createdAt", updated_at AS "updatedAt",
+  COALESCE(body->>'condition', '') AS condition,
+  COALESCE(body->>'reason', '') AS reason,
+  COALESCE(body->>'carrier', '') AS carrier,
+  COALESCE(body->>'testResult', '') AS "testResult",
+  COALESCE(body->>'qty', '') AS qty,
+  COALESCE(body->>'deletedBy', '') AS "deletedBy",
+  COALESCE(body->>'deletedAt', '') AS "deletedAt",
+  ((body->'wrongItem') = 'true'::jsonb) AS "wrongItem",
+  CASE WHEN jsonb_typeof(body->'thread') = 'array' THEN jsonb_array_length(body->'thread') ELSE 0 END AS "threadCount"`;
+
+const OPEN_SQL = "status IS DISTINCT FROM 'ปิดงาน'";
+const STAGE2 = "status IN ('ได้รับสินค้าแล้ว','รอทดสอบ','กำลังทดสอบ','ทดสอบเสร็จ','เคลม Platform','ส่งคืนลูกค้า','รอทำรับคืน (CN)','ปิดงาน')";
+
+function dateOk(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+}
+
+function ageExpr(todayParam) {
+  return `CASE
+    WHEN received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN ($${todayParam}::date - received_date::date)
+    WHEN left(COALESCE(created_at, ''), 10) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN GREATEST($${todayParam}::date - left(created_at, 10)::date, 0)
+    ELSE 0 END`;
+}
+
+function createdTodaySql(params, start, end, today) {
+  params.push(start, end, today);
+  const a = params.length - 2;
+  const b = params.length - 1;
+  const c = params.length;
+  return `((char_length(created_at) = 24 AND right(created_at, 1) = 'Z' AND created_at >= $${a} AND created_at < $${b}) OR (char_length(COALESCE(created_at, '')) <> 24 AND left(created_at, 10) = $${c}))`;
+}
+
+function histExists(startIdx, endIdx, actionSql) {
+  return `EXISTS (
+    SELECT 1 FROM jsonb_array_elements(COALESCE(body->'history', '[]'::jsonb)) h
+    WHERE (h->>'at') >= $${startIdx} AND (h->>'at') < $${endIdx}
+      AND ${actionSql}
+      AND (h->>'action') NOT LIKE 'ระบบแปลงสถานะ%'
+      AND (h->>'action') NOT LIKE 'อัปเดตจากไฟล์นำเข้า%')`;
+}
+
+function listFilter(name, params, sp) {
+  const today = sp.get('today') || '';
+  const start = sp.get('start') || '';
+  const end = sp.get('end') || '';
+  if (name === 'open') return OPEN_SQL;
+  if (name === 'in') return "status IN ('สร้างคำขอคืน','รอรับสินค้า','ได้รับสินค้าแล้ว')";
+  if (name === 'test') return "status IN ('รอทดสอบ','กำลังทดสอบ')";
+  if (name === 'action') return "status IN ('ทดสอบเสร็จ','เคลม Platform','ส่งคืนลูกค้า')";
+  if (name === 'doc') return "status = 'รอทำรับคืน (CN)'";
+  if (name === 'closed') return "status = 'ปิดงาน'";
+  if (name === 'wrong') return OPEN_SQL + " AND (body->'wrongItem') = 'true'::jsonb";
+  if (name === 'today' && dateOk(today)) {
+    params.push(today);
+    return 'received_date = $' + params.length;
+  }
+  if (name === 'newToday' && dateOk(today) && start && end) return createdTodaySql(params, start, end, today);
+  if (name === 'closedToday' && start && end) {
+    params.push(start, end);
+    const a = params.length - 1;
+    const b = params.length;
+    return "status = 'ปิดงาน' AND " + histExists(a, b, "(h->>'action') LIKE '%→ ปิดงาน%'");
+  }
+  if (name === 'aged' && dateOk(today)) {
+    params.push(today);
+    return OPEN_SQL + ' AND ' + ageExpr(params.length) + ' > 30';
+  }
+  if (name === 'ageBad' && dateOk(today)) {
+    params.push(today);
+    return OPEN_SQL + " AND received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND received_date > $" + params.length;
+  }
+  if (name === 'baddate' && dateOk(today)) {
+    params.push(today);
+    const t = params.length;
+    return `((${STAGE2} AND COALESCE(received_date, '') = '')
+      OR (received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND received_date > $${t})
+      OR (stock_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date > $${t})
+      OR (received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date < received_date))`;
+  }
+  return '';
+}
+
+function caseListWhere(sp) {
+  const name = String(sp.get('f') || 'all');
+  const deleted = name === 'trash';
+  const params = [];
+  const where = ["kind = 'case'", 'deleted = ' + (deleted ? 'true' : 'false')];
+  const extra = listFilter(name, params, sp);
+  if (extra) where.push(extra);
+  const platform = String(sp.get('platform') || '');
+  if (platform && platform.length <= 80) {
+    params.push(platform);
+    where.push('platform = $' + params.length);
+  }
+  const condition = String(sp.get('condition') || '');
+  if (condition && condition.length <= 80) {
+    params.push(condition);
+    where.push("COALESCE(NULLIF(body->>'condition', ''), 'อื่นๆ') = $" + params.length);
+  }
+  const from = sp.get('from') || '';
+  const to = sp.get('to') || '';
+  if (dateOk(from)) {
+    params.push(from);
+    where.push('received_date >= $' + params.length);
+  }
+  if (dateOk(to)) {
+    params.push(to);
+    where.push('received_date <= $' + params.length);
+  }
+  const term = normTerm(sp.get('q'));
+  if (term.length >= 1 && term.length <= 80) {
+    params.push(likePrefix(term));
+    const n = '$' + params.length;
+    const parts = SEARCH_COLS.map(col => `lower(${col}) LIKE ${n} ESCAPE '\\'`);
+    where.push('(' + parts.join(' OR ') + ')');
+  }
+  return { where: where.join(' AND '), params };
+}
+
+async function casePage(sp) {
+  const limit = Math.min(100, Math.max(1, Number(sp.get('limit')) || 100));
+  const offset = Math.min(200000, Math.max(0, Number(sp.get('offset')) || 0));
+  const built = caseListWhere(sp);
+  const count = await pool.query('SELECT count(*)::int AS n FROM docs WHERE ' + built.where, built.params);
+  const params = built.params.concat([limit, offset]);
+  const rows = await pool.query(
+    `SELECT ${SLIM} FROM docs WHERE ${built.where}
+     ORDER BY updated_at DESC NULLS LAST, id DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+  return { rows: rows.rows, total: count.rows[0].n, limit, offset };
+}
+
+async function currentRev() {
+  const row = await pool.query('SELECT rev FROM sync_state WHERE id = 1');
+  return { rev: row.rowCount ? row.rows[0].rev : 0 };
+}
+
+async function dashboard(sp) {
+  const today = dateOk(sp.get('today')) ? sp.get('today') : '';
+  const start = String(sp.get('start') || '');
+  const end = String(sp.get('end') || '');
+  const stale = String(sp.get('stale') || '');
+  const rev = await currentRev();
+  const params = [today || '1970-01-01'];
+  const age = ageExpr(1);
+  const created = today && start && end ? createdTodaySql(params, start, end, today) : 'FALSE';
+  let recvSql = 'FALSE';
+  let closedSql = 'FALSE';
+  if (start && end) {
+    params.push(start, end);
+    const a = params.length - 1;
+    const b = params.length;
+    recvSql = histExists(a, b, "(h->>'action') ~ '(→ |\\()ได้รับสินค้าแล้ว'");
+    closedSql = "status = 'ปิดงาน' AND " + histExists(a, b, "(h->>'action') LIKE '%→ ปิดงาน%'");
+  }
+  params.push(stale || '9999-12-31');
+  const staleIdx = params.length;
+  const [counts, byStatus, conditions, platforms, daily, recent, wrongList, staleList, testQueue, trash] = await Promise.all([
+    pool.query(
+      `SELECT
+         count(*)::int AS total,
+         count(*) FILTER (WHERE ${OPEN_SQL})::int AS open,
+         count(*) FILTER (WHERE (body->'wrongItem') = 'true'::jsonb)::int AS wrong,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND (body->'wrongItem') = 'true'::jsonb)::int AS "wrongOpen",
+         count(*) FILTER (WHERE status IN ('รอทดสอบ','กำลังทดสอบ'))::int AS test,
+         count(*) FILTER (WHERE status IN ('ทดสอบเสร็จ','เคลม Platform','ส่งคืนลูกค้า'))::int AS action,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND status IN ('ได้รับสินค้าแล้ว','รอทดสอบ','กำลังทดสอบ','ทดสอบเสร็จ','เคลม Platform','ส่งคืนลูกค้า','รอทำรับคืน (CN)'))::int AS received,
+         count(*) FILTER (WHERE ${created})::int AS "newToday",
+         count(*) FILTER (WHERE ${recvSql})::int AS "recvToday",
+         count(*) FILTER (WHERE ${closedSql})::int AS "closedToday",
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} > 30)::int AS aged30,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} > 90)::int AS aged90,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} BETWEEN 0 AND 7)::int AS b7,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} BETWEEN 8 AND 30)::int AS b30,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} BETWEEN 31 AND 90)::int AS b90,
+         count(*) FILTER (WHERE ${OPEN_SQL} AND ${age} > 90)::int AS "bOld",
+         count(*) FILTER (WHERE ${OPEN_SQL} AND received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND received_date > $1::text)::int AS "badAge",
+         count(*) FILTER (WHERE (${STAGE2} AND COALESCE(received_date, '') = '')
+           OR (received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND received_date > $1::text)
+           OR (stock_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date > $1::text)
+           OR (received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND stock_date < received_date))::int AS "badDate",
+         count(*) FILTER (WHERE ${OPEN_SQL} AND COALESCE(updated_at, '') <> '' AND updated_at < $${staleIdx})::int AS stale
+       FROM docs WHERE kind = 'case' AND deleted = false`,
+      params
+    ),
+    pool.query("SELECT COALESCE(status, '') AS k, count(*)::int AS n FROM docs WHERE kind = 'case' AND deleted = false GROUP BY 1"),
+    pool.query(`SELECT COALESCE(NULLIF(body->>'condition', ''), 'อื่นๆ') AS k, count(*)::int AS n
+      FROM docs WHERE kind = 'case' AND deleted = false GROUP BY 1 ORDER BY 2 DESC LIMIT 8`),
+    pool.query(`SELECT COALESCE(platform, '') AS k, count(*)::int AS n,
+        count(*) FILTER (WHERE (body->'wrongItem') = 'true'::jsonb)::int AS w
+      FROM docs WHERE kind = 'case' AND deleted = false GROUP BY 1`),
+    pool.query(
+      `SELECT received_date AS d, count(*)::int AS n FROM docs
+       WHERE kind = 'case' AND deleted = false AND received_date >= $1 AND received_date <= $2
+       GROUP BY 1`,
+      [shiftDate(today || '1970-01-01', -6), today || '1970-01-01']
+    ),
+    pool.query(`SELECT ${SLIM} FROM docs WHERE kind = 'case' AND deleted = false ORDER BY updated_at DESC NULLS LAST, id DESC LIMIT 30`),
+    pool.query(`SELECT ${SLIM} FROM docs WHERE kind = 'case' AND deleted = false AND ${OPEN_SQL}
+      AND (body->'wrongItem') = 'true'::jsonb AND COALESCE(body->>'wrongAckAt', '') = ''
+      ORDER BY created_at DESC NULLS LAST LIMIT 10`),
+    pool.query(`SELECT ${SLIM} FROM docs WHERE kind = 'case' AND deleted = false AND ${OPEN_SQL}
+      AND COALESCE(updated_at, '') <> '' AND updated_at < $1
+      ORDER BY updated_at ASC NULLS LAST LIMIT 10`, [stale || '9999-12-31']),
+    pool.query(`SELECT ${SLIM} FROM docs WHERE kind = 'case' AND deleted = false AND status IN ('รอทดสอบ','กำลังทดสอบ')
+      ORDER BY received_date ASC NULLS LAST, created_at ASC NULLS LAST LIMIT 12`),
+    pool.query("SELECT count(*)::int AS n FROM docs WHERE kind = 'case' AND deleted = true")
+  ]);
+  const statusMap = {};
+  byStatus.rows.forEach(row => { statusMap[row.k] = row.n; });
+  return Object.assign({}, counts.rows[0], {
+    rev: rev.rev,
+    trash: trash.rows[0].n,
+    byStatus: statusMap,
+    conditions: conditions.rows,
+    platforms: platforms.rows,
+    daily: daily.rows,
+    recent: recent.rows,
+    wrongList: wrongList.rows,
+    staleList: staleList.rows,
+    testQueue: testQueue.rows
+  });
+}
+
+function shiftDate(iso, days) {
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+  if (Number.isNaN(d.getTime())) return '1970-01-01';
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+async function trendAgg() {
+  const [cond, reason] = await Promise.all([
+    pool.query(`SELECT substr(received_date, 1, 7) AS m, COALESCE(NULLIF(body->>'condition', ''), 'อื่นๆ') AS k, count(*)::int AS n
+      FROM docs WHERE kind = 'case' AND deleted = false AND received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      GROUP BY 1, 2`),
+    pool.query(`SELECT substr(received_date, 1, 7) AS m, COALESCE(NULLIF(body->>'reason', ''), 'อื่นๆ') AS k, count(*)::int AS n
+      FROM docs WHERE kind = 'case' AND deleted = false AND received_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
+      GROUP BY 1, 2`)
+  ]);
+  const mc = {};
+  const cm = {};
+  const rm = {};
+  const condTot = {};
+  const reasonTot = {};
+  cond.rows.forEach(row => {
+    mc[row.m] = (mc[row.m] || 0) + row.n;
+    condTot[row.k] = (condTot[row.k] || 0) + row.n;
+    if (!cm[row.k]) cm[row.k] = {};
+    cm[row.k][row.m] = row.n;
+  });
+  reason.rows.forEach(row => {
+    reasonTot[row.k] = (reasonTot[row.k] || 0) + row.n;
+    if (!rm[row.k]) rm[row.k] = {};
+    rm[row.k][row.m] = row.n;
+  });
+  const months = Object.keys(mc).sort();
+  const topConds = Object.entries(condTot).sort((a, b) => b[1] - a[1]).slice(0, 8).map(entry => entry[0]);
+  return { months, topConds, mc, cm, rm, reasonTot };
+}
+
+async function inboxPage() {
+  const result = await pool.query(
+    `SELECT id, invoice_no AS "invoiceNo", order_no AS "orderNo", status, platform, updated_at AS "updatedAt",
+            body->'thread' AS thread
+     FROM docs
+     WHERE kind = 'case' AND deleted = false
+       AND jsonb_typeof(body->'thread') = 'array'
+       AND jsonb_array_length(body->'thread') > 0
+     ORDER BY updated_at DESC NULLS LAST
+     LIMIT 80`
+  );
+  return { rows: result.rows };
+}
+
+async function caseKeys() {
+  const result = await pool.query(
+    `SELECT id, deleted, status,
+        invoice_no AS "invoiceNo", order_no AS "orderNo", pa_no AS "paNo", ro_no AS "roNo",
+        cn_no AS "cnNo", cc_no AS "ccNo", sku, serial, tracking,
+        return_tracking AS "returnTracking", claim_no AS "claimNo",
+        received_date AS "receivedDate", stock_date AS "stockDate",
+        COALESCE(body->>'condition', '') AS condition,
+        COALESCE(body->>'carrier', '') AS carrier,
+        COALESCE(body->>'returnCarrier', '') AS "returnCarrier",
+        COALESCE(body->>'qty', '') AS qty,
+        COALESCE(body->>'claimResult', '') AS "claimResult",
+        COALESCE(body->>'boxNo', '') AS "boxNo",
+        left(COALESCE(body->>'handoverNote', ''), 180) AS "handoverNote",
+        ((body->'wrongItem') = 'true'::jsonb) AS "wrongItem",
+        CASE WHEN deleted THEN COALESCE((
+          SELECT (e->>'action') LIKE 'ยกเลิกการนำเข้า%'
+          FROM jsonb_array_elements(COALESCE(body->'history', '[]'::jsonb)) e
+          WHERE (e->>'action') LIKE 'ยกเลิกการนำเข้า%' OR (e->>'action') LIKE 'ลบ%'
+          ORDER BY e->>'at' DESC
+          LIMIT 1
+        ), false) ELSE false END AS undone
+     FROM docs WHERE kind = 'case'`
+  );
+  const cols = ['id', 'deleted', 'undone', 'status', 'invoiceNo', 'orderNo', 'paNo', 'roNo', 'cnNo', 'ccNo', 'sku', 'serial', 'qty', 'carrier', 'tracking', 'returnTracking', 'returnCarrier', 'claimNo', 'claimResult', 'boxNo', 'handoverNote', 'receivedDate', 'stockDate', 'condition', 'wrongItem'];
+  return {
+    cols,
+    rows: result.rows.map(row => cols.map(col => {
+      const value = row[col];
+      if (value == null || value === false || value === '') return '';
+      if (value === true) return 1;
+      return value;
+    }))
+  };
 }
 
 async function handle(req, res) {
@@ -251,8 +601,14 @@ async function handle(req, res) {
     return send(res, 200, page);
   }
   if (req.method === 'GET' && pathname === '/search') {
-    return send(res, 200, await searchCases(url.searchParams.get('q'), clampLimit(url.searchParams.get('limit') || 50)));
+    return send(res, 200, await searchCases(url.searchParams.get('q'), clampLimit(url.searchParams.get('limit') || 50), url.searchParams.get('deleted') === '1'));
   }
+  if (req.method === 'GET' && pathname === '/rev') return send(res, 200, await currentRev());
+  if (req.method === 'GET' && pathname === '/cases') return send(res, 200, await casePage(url.searchParams));
+  if (req.method === 'GET' && pathname === '/stats') return send(res, 200, await dashboard(url.searchParams));
+  if (req.method === 'GET' && pathname === '/trend') return send(res, 200, await trendAgg());
+  if (req.method === 'GET' && pathname === '/inbox') return send(res, 200, await inboxPage());
+  if (req.method === 'GET' && pathname === '/keys') return send(res, 200, await caseKeys());
   if (req.method === 'GET' && pathname === '/users') return send(res, 200, await listUsers());
   if (req.method === 'GET' && pathname.startsWith('/docs/')) return send(res, 200, await getDoc(pathname.slice('/docs/'.length)));
   if (req.method === 'GET' && pathname.startsWith('/users/')) {

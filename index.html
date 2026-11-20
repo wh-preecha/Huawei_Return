@@ -48,6 +48,8 @@ body{font-family:var(--font);background:var(--cream);color:var(--td);font-size:1
 .auth-err{font-size:11px;color:#A32D2D;min-height:15px;margin-bottom:4px}
 .auth-note{font-size:10.5px;color:var(--info-txt);background:var(--info-bg);border:0.5px solid var(--s100);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:10px;line-height:1.5}
 .auth-foot{text-align:center;font-size:9px;color:var(--tl);margin-top:16px;line-height:1.5}
+.auth-copy{display:block;margin-top:8px;font-size:12px;font-weight:500;color:var(--s600)}
+.site-footer{flex-shrink:0;text-align:center;font-size:12px;font-weight:500;line-height:1.4;color:var(--s600);background:var(--cream);border-top:0.5px solid var(--s100);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
 
 /* ── USER MENU ── */
 .topbar-me{display:flex;align-items:center;gap:7px;color:#fff;background:rgba(255,255,255,.12);padding:4px 6px 4px 11px;border-radius:20px}
@@ -373,6 +375,7 @@ tbody tr:hover td.cc-td{background:transparent}
  #modal-ticket.open{display:block!important;position:static!important;background:none!important;padding:0!important}
  #modal-ticket .modal{box-shadow:none!important;border:none!important;max-height:none!important;max-width:none!important;overflow:visible!important;padding:0!important}
  #modal-ticket .modal-title,#modal-ticket .btn-row{display:none!important}
+ #modal-ticket .ticket-footer{display:block!important}
  .ticket-band,.ticket-remark{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 /* เครื่องพิมพ์ความร้อน 80 มม.: เปลี่ยนเป็น @page{size:80mm auto;margin:3mm} */
 @page{margin:6mm}
@@ -460,7 +463,7 @@ tbody tr:hover td.cc-td{background:transparent}
     <div id="auth-reg" style="display:none">
       <div class="auth-field"><label>ชื่อ-สกุล / ชื่อที่แสดง</label><input id="rg-name" placeholder="เช่น สมชาย ใจดี"></div>
       <div class="auth-field"><label for="rg-user">อีเมล (Gmail หรืออีเมลใดก็ได้ — ใช้เข้าสู่ระบบ)</label><input id="rg-user" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="เช่น somchai@gmail.com"></div>
-      <div class="auth-field"><label>แผนก (ผู้ดูแลจะอนุมัติ)</label>
+      <div class="auth-field"><label>แผนก</label>
         <select id="rg-role">
           <option value="sales">ฝ่ายขาย ECOM</option>
           <option value="wh">คลังสินค้า</option>
@@ -469,11 +472,10 @@ tbody tr:hover td.cc-td{background:transparent}
       </div>
       <div class="auth-field"><label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="rg-pass" type="password" autocomplete="new-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()"></div>
       <div class="auth-err" id="rg-err"></div>
-      <div class="auth-note" id="rg-first" style="display:none"><i class="ti ti-info-circle"></i> ยังไม่มีบัญชีในระบบ — บัญชีแรกจะเป็นผู้ดูแลระบบ (Admin)</div>
       <button class="btn btn-success auth-btn" id="rg-btn" onclick="doRegister()"><i class="ti ti-user-plus"></i> สร้างบัญชี</button>
     </div>
 
-    <div class="auth-foot">บัญชีผู้ใช้เก็บส่วนกลาง ใช้ได้ทุกเครื่อง · “Return Today, Better Tomorrow”</div>
+    <div class="auth-foot">บัญชีผู้ใช้เก็บส่วนกลาง ใช้ได้ทุกเครื่อง · “Return Today, Better Tomorrow”<span class="auth-copy">2026 © Synnex Warehouse Support</span></div>
   </div>
 </div>
 
@@ -844,12 +846,14 @@ tbody tr:hover td.cc-td{background:transparent}
 
     </main>
   </div>
+  <footer class="site-footer">2026 © Synnex Warehouse Support</footer>
 </div>
 
 <div id="boot-overlay" style="position:fixed;inset:0;z-index:150;display:none;background:rgba(250,247,242,.97);align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:14px;color:var(--s700)">
   <div><i class="ti ti-loader-2"></i> กำลังโหลดข้อมูล…</div>
   <div id="boot-msg" style="font-size:12px;color:#A32D2D;max-width:320px;text-align:center"></div>
   <button id="boot-retry" class="btn btn-primary btn-sm" style="display:none" onclick="location.reload()">ลองใหม่</button>
+  <div class="site-footer" style="position:absolute;left:0;right:0;bottom:0">2026 © Synnex Warehouse Support</div>
 </div>
 
 <!-- MODALS -->
@@ -928,7 +932,7 @@ tbody tr:hover td.cc-td{background:transparent}
 
 <div id="toast" class="no-print"></div>
 
-<script src="hrms-db.js"></script>
+<script src="hrms-db.js?v=3"></script>
 <script>
 // ข้อมูลจริงอยู่ที่ PostgreSQL ผ่าน API เดียวกันกับหน้าเว็บ (/Huawei-Return/api)
 // เบราว์เซอร์ไม่ต่อฐานข้อมูลตรง ๆ — ตัวแปร firebaseDb คือตัวเชื่อมชุดนั้น (ชื่อเดิมเพื่อไม่แตะจุดเรียกทั้งไฟล์)
@@ -1211,16 +1215,15 @@ function authReady(err){
 function setAuthBusy(b){ authBusy = b; ['lg-btn','rg-btn','fg-btn','rs-btn'].forEach(id => { const x = $id(id); if(x) x.disabled = b; }); }
 function profileProblem(p){
   if(!p) return 'ไม่พบบัญชีผู้ใช้';
-  if(p.status === 'pending') return 'บัญชีรอผู้ดูแลอนุมัติ';
+  if(p.status === 'pending') return 'บัญชีนี้ยังไม่เปิดใช้ — ติดต่อผู้ดูแล';
   if(p.status === 'suspended') return 'บัญชีถูกระงับ — ติดต่อผู้ดูแล';
   if(p.status !== 'active' || !ROLES[p.role]) return 'บัญชียังไม่พร้อมใช้งาน — ติดต่อผู้ดูแล';
   return '';
 }
-// หมายเหตุ "บัญชีแรก = Admin" แสดงเฉพาะเมื่อยังไม่มีบัญชีในระบบเลย
+// ยังไม่มีบัญชี: เปิดแท็บสมัคร สมาชิกใหม่ได้แผนกที่เลือกและใช้งานได้ทันที ไม่ได้เป็นผู้ดูแลเอง
 async function prepAuthForms(){
   let empty = false;
   try { empty = await Users.isEmpty(); } catch(e){ console.warn('users check', e); }
-  $id('rg-first').style.display = empty ? '' : 'none';
   if(empty) switchAuth('reg');
 }
 async function doRegister(){
@@ -1236,29 +1239,19 @@ async function doRegister(){
   if(!SELF_ROLES.includes(role)){ authMsg(err, 'กรุณาเลือกแผนก'); return; }
   setAuthBusy(true); authMsg(err, 'กำลังสมัคร…', 'info');
   try {
-    const first = await Users.isEmpty();
     const now = new Date().toISOString();
-    // G05 สร้างเป็น pending เสมอ (firestore.rules รับเฉพาะ status/role = pending ตอนสร้าง) แล้วจึงปรับสถานะในขั้นที่สอง
-    const doc = {name, requestedRole:role, createdAt:now, lastLoginAt:'', role:'pending', status:'pending', approvedBy:'', approvedAt:'', ...(await pwFields(user, pass))};
-    if(first){
-      // บัญชีแรกของทั้งระบบ = ผู้ดูแลระบบ เข้าใช้ได้ทันที
-      await userWrite(Users.create(user, doc));
-      const up = {role:'admin', status:'active', approvedBy:'bootstrap', approvedAt:now, lastLoginAt:now};
-      try { await userWrite(Users.update(user, up)); }
-      catch(e2){ console.warn(e2); switchAuth('login'); $id('lg-user').value = user; $id('rg-pass').value = ''; authMsg('lg-err', 'สร้างบัญชีแล้ว แต่ตั้งเป็นผู้ดูแลระบบยังไม่เสร็จ (' + netMsg(e2) + ') — เข้าสู่ระบบด้วยอีเมลและรหัสผ่านนี้อีกครั้งเพื่อทำให้เสร็จ'); return; }
-      Object.assign(doc, up);
-      await writeSess({...doc, username:user}); authMsg(err, '');
-      $id('rg-pass').value = '';
-      startSession({...doc, username:user});
-      showToast('สร้างบัญชีผู้ดูแลระบบ (Admin) แล้ว');
-      return;
-    }
-    // บัญชีทั่วไป: รอผู้ดูแลอนุมัติ — ไม่เข้าสู่ระบบให้อัตโนมัติ
+    const doc = {name, requestedRole:role, createdAt:now, lastLoginAt:'', role, status:'active', approvedBy:'', approvedAt:'', ...(await pwFields(user, pass))};
     await userWrite(Users.create(user, doc));
     ['rg-name','rg-user','rg-pass'].forEach(id => { $id(id).value = ''; });
-    authMsg(err, '');
-    switchAuth('login'); $id('lg-user').value = user; $id('lg-pass').value = '';
-    authMsg('lg-err', 'สมัครสำเร็จ — รอผู้ดูแลอนุมัติ แล้วจึงเข้าสู่ระบบได้', 'ok');
+    const p = await Users.get(user);
+    if(p && !profileProblem(p)){
+      await writeSess(p);
+      authMsg(err, '');
+      startSession(p);
+    } else {
+      switchAuth('login'); $id('lg-user').value = user; $id('lg-pass').value = '';
+      authMsg('lg-err', 'สมัครสำเร็จ — เข้าสู่ระบบได้ทันที', 'ok');
+    }
   } catch(e){ console.warn(e); authMsg(err, e.code === 'exists' ? 'อีเมลนี้สมัครไว้แล้ว — เข้าสู่ระบบได้เลย (ลืมรหัสผ่านให้ผู้ดูแลรีเซ็ต)' : 'สมัครไม่สำเร็จ: ' + netMsg(e)); }
   finally { setAuthBusy(false); }
 }
@@ -1272,15 +1265,6 @@ async function doLogin(){
   try {
     const p = await Users.get(user);
     if(!(await checkPw(p, pass))){ authMsg(err, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'); return; }
-    // บัญชีแรกของระบบที่ตั้งเป็นผู้ดูแลไม่เสร็จตอนสมัคร (ขั้นที่สองหลุด) → ทำต่อให้ตอนเข้าระบบ
-    // เฉพาะชื่อแรกในรายชื่อบัญชี ที่ยังไม่เคยถูกอนุมัติ และระบบยังไม่มีผู้ดูแลที่ใช้งานอยู่เลย
-    if(firebaseDb && p.status === 'pending' && !p.approvedBy){
-      const l = await Users.list();
-      if(l.length && l[0].username === p.username && !l.some(x => x.status === 'active' && x.role === 'admin')){
-        const up = {role:'admin', status:'active', approvedBy:'bootstrap', approvedAt:new Date().toISOString()};
-        await userWrite(Users.update(p.username, up)); Object.assign(p, up);
-      }
-    }
     const why = profileProblem(p); if(why){ authMsg(err, why); return; }
     // G05 อัปเกรด hash เดิม (hashVer 2) เป็น PBKDF2 — ใช้ hash ใหม่กับเซสชันเฉพาะเมื่อเขียนขึ้นเซิร์ฟเวอร์สำเร็จ ไม่งั้นใช้ต่อแบบเดิม
     // อัปเกรดอัตโนมัติเริ่มตั้งแต่ PW3_UPGRADE_FROM เท่านั้น — ไฟล์แอปรุ่นก่อน (แท็บที่เปิดค้าง / ไฟล์ HTML ที่ดาวน์โหลดไว้) ตรวจ hashVer 3 ไม่เป็น
@@ -1743,7 +1727,7 @@ function setSyncBadge(){
 // onLateFail = เรียกเมื่อการเขียนที่ตอบ 'queued' ไปแล้วถูกเซิร์ฟเวอร์ปฏิเสธภายหลัง (เช่น คืนข้อความถาม-ตอบที่ส่งไม่สำเร็จ)
 function trackWrite(p, label, onLateFail){
   pendingWrites++; setSyncBadge(); let late = false;
-  p.catch(e => { console.error(e); if(late){ showToast(label + ' ไม่สำเร็จ: ' + e.message, true); if(onLateFail){ try { onLateFail(e); } catch(e2){ console.error(e2); } } } })
+  p.then(() => { if(firebaseDb) scheduleRemoteRefresh(); }).catch(e => { console.error(e); if(late){ showToast(label + ' ไม่สำเร็จ: ' + e.message, true); if(onLateFail){ try { onLateFail(e); } catch(e2){ console.error(e2); } } } })
    .finally(() => { pendingWrites--; setSyncBadge(); });
   return Promise.race([p.then(() => 'ok'), new Promise(r => setTimeout(() => { late = true; r('queued'); }, 4000))]);
 }
@@ -1763,7 +1747,9 @@ async function patchCase(id, fields, actions, opts){
   writeGuard();
   opts = opts || {};
   // เฉพาะเคสที่ยังอยู่ใน cases (กู้คืนได้เฉพาะจาก trash) — อุปกรณ์ที่ข้อมูลค้างจึงชุบชีวิตเคสที่ถูกลบไม่ได้
-  const r = cases.find(x => x.id === id) || (fields.deleted === false ? trash.find(x => x.id === id) : null);
+  let r = cases.find(x => x.id === id);
+  if(!r && fields.deleted === false) r = trash.find(x => x.id === id);
+  if(!r && extraCases){ const e = extraCases.get(id); if(e && (!e.deleted || fields.deleted === false)) r = e; }
   if(!r) throw new Error('เคสนี้ถูกลบแล้ว หรือไม่พบในระบบ');
   const acts = [].concat(actions||[]).filter(Boolean).map(histEntry);
   // G07 สถานะที่แปลงเฉพาะในเครื่อง (_migrateFrom) ต้องถูกเขียนไปด้วย — ไม่งั้นฐานข้อมูลยังเป็นสถานะเดิม และประวัติ "แก้ไข:" ทำให้กฎแปลงสถานะไม่ทำงานอีก
@@ -1779,6 +1765,8 @@ async function patchCase(id, fields, actions, opts){
   }
   const data = {...upd, syncAt: FV.serverTimestamp()};
   if(acts.length) data.history = FV.arrayUnion(...acts);
+  Object.assign(r, upd);
+  if(acts.length) r.history = [...(r.history||[]), ...acts];
   return trackWrite(firebaseDb.collection(CASES_COLLECTION).doc(id).update(data), opts.label || ('อัปเดต ' + (r.invoiceNo||id)), opts.onLateFail);
 }
 
@@ -1807,33 +1795,109 @@ function loadCases(){
     normaliseCases(); casesFromCache = false;
     return Promise.resolve();
   }
-  return new Promise((resolve, reject) => {
-    // live = ใช้ snapshot จากเซิร์ฟเวอร์ไปแล้วอย่างน้อยหนึ่งครั้ง — ก่อนหน้านั้น (snapshot แรกจากแคช IndexedDB แล้วตามด้วยการตามข้อมูลจากเซิร์ฟเวอร์)
-    // คือข้อมูลที่ค้างตั้งแต่ปิดแอป ไม่ใช่การเปลี่ยนแปลงสด → ไม่แจ้งเตือน "มีเคสใหม่" / "ข้อความใหม่" (ป้ายกล่องข้อความยังอัปเดตตามปกติ)
-    let first = true, live = false;
-    casesUnsub = firebaseDb.collection(CASES_COLLECTION).onSnapshot({includeMetadataChanges:true}, snap => {
-      casesFromCache = snap.metadata.fromCache; if(!casesFromCache) casesSynced = true;
-      if(first && casesFromCache && snap.docs.every(d => isAcctId(d.id))){ setSyncBadge(); return; }   // แคชไม่มีเคส (มีแต่บัญชีจากหน้าเข้าระบบ) — รอข้อมูลจากเซิร์ฟเวอร์
-      const ch = snap.docChanges().filter(c => !isAcctId(c.doc.id));   // เอกสารบัญชีผู้ใช้ไม่ใช่เคส
-      const notify = !first && booted && live && ch.length <= 200;
-      // B9-3 id ของข้อความถาม-ตอบก่อนรับการเปลี่ยนแปลง — ข้อความใหม่ = id ที่ไม่เคยมี (ไม่ใช้ตำแหน่ง/เวลาจากนาฬิกาเครื่องผู้ส่ง)
-      const prevIds = new Map();
-      if(notify) ch.forEach(c => { if(c.type !== 'modified') return; const o = cases.find(x => x.id === c.doc.id); if(o) prevIds.set(o.id, new Set(qaThread(o).map(qaKey))); });
-      if(first || ch.length > 200) splitDocs(snap.docs); else ch.forEach(applyChange);
-      normaliseCases(); setSyncBadge(); maybeMigrate();
-      if(!snap.metadata.fromCache) live = true;
-      if(first){ first = false; resolve(); return; }
-      const added = ch.filter(c => c.type === 'added' && !c.doc.metadata.hasPendingWrites);
-      if(notify && added.length) showToast(added.length === 1 ? 'มีเคสใหม่: ' + (added[0].doc.data().invoiceNo||'') : 'มีเคสใหม่ ' + added.length + ' รายการ');
-      if(prevIds.size) qaOnChanges(prevIds);
-      if(ch.length) scheduleRefresh();
-    }, err => {
-      console.error(err);
-      if(first){ first = false; reject(err); return; }
-      showToast('การเชื่อมต่อฐานข้อมูลขาด: ' + err.message, true);
-      const ob = $id('offline-bar'); if(ob){ ob.textContent = 'การเชื่อมต่อฐานข้อมูลขาด (' + err.message + ') — ข้อมูลบนจออาจไม่ล่าสุด กรุณาโหลดหน้าใหม่'; ob.style.display = ''; }
-    });
-  });
+  cases = []; trash = []; listRemote = true; casesSynced = true; casesFromCache = false;
+  return Promise.resolve();
+}
+let serverStats = null, extraCases = new Map(), listRemote = false, listTotal = 0, listGen = 0, seenRev = 0, remoteT = null, revTimer = null, inboxCache = null;
+function caseById(id){
+  const a = cases.find(x => x.id === id); if(a) return a;
+  const b = trash.find(x => x.id === id); if(b) return b;
+  return extraCases.get(id) || null;
+}
+function putCase(r){
+  extraCases.set(r.id, r);
+  let i = cases.findIndex(x => x.id === r.id);
+  if(i > -1){ cases[i] = r; return; }
+  i = trash.findIndex(x => x.id === r.id);
+  if(i > -1){ trash[i] = r; return; }
+  if(r.deleted) trash.push(r);
+}
+async function hydrate(id){
+  if(!firebaseDb) return caseById(id);
+  const cur = caseById(id);
+  if(cur && cur._full) return cur;
+  const snap = await firebaseDb.collection(CASES_COLLECTION).doc(id).get();
+  if(!snap.exists) return null;
+  const r = Object.assign({id, _full:true}, snap.data());
+  putCase(r);
+  return r;
+}
+function statsQuery(){
+  refreshToday();
+  const q = new URLSearchParams();
+  q.set('today', todayISO);
+  q.set('start', todayRange[0]);
+  q.set('end', todayRange[1]);
+  q.set('stale', new Date(Date.now() - 4*864e5).toISOString());
+  return q.toString();
+}
+function applyServerStats(raw){
+  const c = {
+    total: raw.total||0, wrong: raw.wrong||0, open: raw.open||0, wrongOpen: raw.wrongOpen||0,
+    newToday: raw.newToday||0, recvToday: raw.recvToday||0, closedToday: raw.closedToday||0,
+    aged30: raw.aged30||0, aged90: raw.aged90||0, b7: raw.b7||0, b30: raw.b30||0, b90: raw.b90||0, bOld: raw.bOld||0,
+    badAge: raw.badAge||0, badDate: raw.badDate||0, test: raw.test||0, action: raw.action||0, received: raw.received||0,
+    trash: raw.trash||0, stale: raw.stale||0, byStatus: raw.byStatus||{}, groups:{in:0,test:0,action:0,doc:0,closed:0},
+    conditions: raw.conditions||[], platforms: raw.platforms||[], daily: raw.daily||[],
+    recent: raw.recent||[], wrongList: raw.wrongList||[], staleList: raw.staleList||[], testQueue: raw.testQueue||[]
+  };
+  Object.entries(c.byStatus).forEach(([k,n]) => { const g = statusMeta(k).group; if(c.groups[g] != null) c.groups[g] += n; });
+  serverStats = c;
+  seenRev = Number(raw.rev) || seenRev;
+  extraCases = new Map();
+  c.testQueue.concat(c.recent, c.wrongList, c.staleList).forEach(r => { if(r && r.id) extraCases.set(r.id, r); });
+  return c;
+}
+async function ensureStats(){
+  if(!firebaseDb) return null;
+  return applyServerStats(await firebaseDb.stats(statsQuery()));
+}
+function scheduleRemoteRefresh(){
+  clearTimeout(remoteT);
+  remoteT = setTimeout(async () => {
+    if(!firebaseDb || !booted) return;
+    try { await ensureStats(); }
+    catch(e){ console.error(e); return; }
+    refreshActivePage();
+  }, 350);
+}
+function startRevPoll(){
+  if(revTimer || !firebaseDb) return;
+  revTimer = setInterval(async () => {
+    if(document.hidden || !booted || pendingWrites) return;
+    try {
+      const row = await firebaseDb.rev();
+      if(row && Number(row.rev) !== seenRev) scheduleRemoteRefresh();
+    } catch(e) { console.error(e); }
+  }, 8000);
+}
+async function fetchCasePage(opts){
+  opts = opts || {};
+  const gen = ++listGen;
+  const offset = opts.more ? (caseFilter === 'trash' ? trash.length : cases.length) : 0;
+  const q = new URLSearchParams();
+  q.set('f', caseFilter);
+  q.set('today', todayISO);
+  q.set('start', todayRange[0]);
+  q.set('end', todayRange[1]);
+  q.set('limit', '100');
+  q.set('offset', String(offset));
+  q.set('platform', ($id('sp-cases') && $id('sp-cases').value) || '');
+  q.set('condition', ($id('sc-cases') && $id('sc-cases').value) || '');
+  q.set('from', ($id('df-cases') && $id('df-cases').value) || '');
+  q.set('to', ($id('dt-cases') && $id('dt-cases').value) || '');
+  q.set('q', ($id('si-cases') && $id('si-cases').value) || '');
+  let page;
+  try { page = await firebaseDb.pageCases(q.toString()); }
+  catch(e){ showToast('โหลดรายการไม่ได้: ' + e.message, true); return []; }
+  if(gen !== listGen) return caseFilter === 'trash' ? trash : cases;
+  const rows = page.rows || [];
+  listTotal = page.total || 0;
+  listRemote = true;
+  if(caseFilter === 'trash') trash = opts.more ? trash.concat(rows) : rows;
+  else cases = opts.more ? cases.concat(rows) : rows;
+  renderCases({local:true, keepOrder:!!opts.keepOrder});
+  return caseFilter === 'trash' ? trash : cases;
 }
 function scheduleRefresh(){ clearTimeout(refreshT); refreshT = setTimeout(refreshActivePage, 400); }
 // หน้า Trendline ไม่รีเฟรชอัตโนมัติ (คำนวณหนัก)
@@ -1846,7 +1910,7 @@ function refreshActivePage(){
   else if(p === 'flow') renderFlow();
   else if(p === 'users') renderImportHistory();   // B5-2: จำนวนเคสต่อชุดนำเข้าเปลี่ยนตาม listener
   else if(p === 'inbox') renderInbox();
-  else if(p === 'form' && editId) showEditConflict(cases.find(x => x.id === editId));
+  else if(p === 'form' && editId) showEditConflict(caseById(editId));
 }
 // แจ้งเตือนในฟอร์มแก้ไข เมื่อเคสที่เปิดอยู่ถูกลบหรือถูกแก้จากเครื่องอื่นหลังเปิดฟอร์ม (listener เรียกผ่าน refreshActivePage)
 function showEditConflict(live){
@@ -2055,6 +2119,7 @@ const ACT_ST = ['ทดสอบเสร็จ','เคลม Platform','ส่
 // ตัวเลขทั้งหมดของ Dashboard ในรอบเดียว: open = ยังไม่ปิดงาน · received = ยังเปิดและถึงขั้น ได้รับสินค้าแล้ว ขึ้นไป
 // อายุเคสที่ยังเปิด (daysAgo): b7 0–7 · b30 8–30 · b90 31–90 · bOld >90 วัน · aged30/aged90 = เกิน 30 / 90 วัน
 function counts() {
+  if(serverStats) return serverStats;
   refreshToday();
   const c = {total:cases.length, wrong:0, open:0, wrongOpen:0, newToday:0, recvToday:0, closedToday:0, aged30:0, aged90:0, b7:0, b30:0, b90:0, bOld:0, badAge:0, test:0, action:0, byStatus:{}, groups:{in:0,test:0,action:0,doc:0,closed:0}, received:0};
   STATUS_KEYS.forEach(k=>c.byStatus[k]=0);
@@ -2206,8 +2271,9 @@ function renderAlertBar(c) {
   c = c || counts();
   const sec = document.getElementById('alert-section');
   const dt = sec.querySelector('details.stale-dt'), staleOpen = !!(dt && dt.open);
-  const wrong = cases.filter(x=>x.wrongItem && !x.wrongAckAt && x.status!=='ปิดงาน').sort((a,b)=>strCmp(b.createdAt,a.createdAt));
-  const stale = cases.filter(x=>x.status!=='ปิดงาน'&&daysSince(sortTs(x)||x.createdAt)>3).sort((a,b)=>strCmp(sortTs(a),sortTs(b)));
+  const wrong = serverStats ? serverStats.wrongList : cases.filter(x=>x.wrongItem && !x.wrongAckAt && x.status!=='ปิดงาน').sort((a,b)=>strCmp(b.createdAt,a.createdAt));
+  const stale = serverStats ? serverStats.staleList : cases.filter(x=>x.status!=='ปิดงาน'&&daysSince(sortTs(x)||x.createdAt)>3).sort((a,b)=>strCmp(sortTs(a),sortTs(b)));
+  const staleN = serverStats ? serverStats.stale : stale.length;
   let html='';
   if (firebaseDb && cap('del') && cases.some(c=>/^s\d+$/.test(c.id))) {
     html += `<div class="alert-bar red">
@@ -2230,7 +2296,7 @@ function renderAlertBar(c) {
     html += `<div class="alert-bar">
       <i class="ti ti-hourglass-high"></i>
       <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:600;color:var(--warn-txt)">ไม่มีความเคลื่อนไหวเกิน 3 วัน ${stale.length} เคส · ค้างเกิน 30 วัน ${c.aged30} · เกิน 90 วัน ${c.aged90}${c.aged30?` <a href="#" data-f="aged" style="color:var(--s600);margin-left:4px;white-space:nowrap" onclick="openCases(this.dataset.f);return false">ดูเคสค้างเกิน 30 วัน →</a>`:''}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--warn-txt)">ไม่มีความเคลื่อนไหวเกิน 3 วัน ${staleN} เคส · ค้างเกิน 30 วัน ${c.aged30} · เกิน 90 วัน ${c.aged90}${c.aged30?` <a href="#" data-f="aged" style="color:var(--s600);margin-left:4px;white-space:nowrap" onclick="openCases(this.dataset.f);return false">ดูเคสค้างเกิน 30 วัน →</a>`:''}</div>
         ${stale.length?`<details class="stale-dt" style="margin-top:4px"${staleOpen?' open':''}><summary style="cursor:pointer;font-size:10.5px;color:var(--warn-txt)">ดูรายการ</summary>
           <div class="alert-cases">${stale.slice(0,10).map(r=>`<span class="alert-pill" data-id="${H(r.id)}" title="ไม่มีความเคลื่อนไหว ${H(idle(r))} วัน · อายุเคส ${H(daysAgo(r))} วัน" onclick="openViewModal(this.dataset.id)">${H(r.invoiceNo||r.orderNo||'—')} <span class="badge" style="${badgeStyle(r.status)};font-size:8px;padding:1px 5px">${H(r.status)}</span> <span style="color:var(--tl)">${H(idle(r))}ว.</span></span>`).join('')}</div></details>`:''}
       </div></div>`;
@@ -2248,7 +2314,8 @@ const NOTI_ROLE = {
 function renderNotifications() {
   const mine = !!me && me.role !== 'admin', f = mine ? NOTI_ROLE[me.role] : null;
   const head = $id('noti-head'); if(head) head.textContent = mine ? 'งานของฉันล่าสุด' : 'การแจ้งเตือนล่าสุด';
-  const evts = (f ? cases.filter(f) : cases).slice().sort((a,b)=>strCmp(sortTs(b),sortTs(a))).slice(0,8).map(r=>{
+  const src = serverStats ? serverStats.recent : cases;
+  const evts = (f ? src.filter(f) : src).slice().sort((a,b)=>strCmp(sortTs(b),sortTs(a))).slice(0,8).map(r=>{
     const m = statusMeta(r.status);
     let icon='ti-bell', col=m.color, title=r.status, sub=r.invoiceNo||('Order '+(r.orderNo||''));   // G42
     if (r.wrongItem && r.status!=='ปิดงาน') { icon='ti-alert-triangle'; col='#A32D2D'; title='ได้รับสินค้าผิด'; }
@@ -2262,7 +2329,7 @@ function renderNotifications() {
     return {id:r.id, icon, col, title, sub, ts:r.updatedAt||r.createdAt, carrier:r.carrier, plat:r.platform};
   });
   // B9-3 ข้อความถาม-ตอบใหม่ถึงฉัน (ยังไม่เห็น) ขึ้นก่อน — ล่าสุดก่อน สูงสุด 5 รายการ
-  const msgs = !me ? [] : cases.filter(r=>r.thread&&r.thread.length&&qaUnseen(r)).map(r=>{
+  const msgs = !me || serverStats ? [] : cases.filter(r=>r.thread&&r.thread.length&&qaUnseen(r)).map(r=>{
     const e = qaSeen()[r.id], m = qaThread(r).filter(x=>qaForMe(x)&&!qaIsSeen(e,x)).pop();
     return {id:r.id, icon:'ti-message-circle', col:'#534AB7', title:'ข้อความใหม่จาก '+(m.by||m.user||''), sub:m.text+' · '+(r.invoiceNo||r.orderNo||''), ts:m.at, plat:r.platform, msg:true};
   }).sort((a,b)=>strCmp(b.ts,a.ts)).slice(0,5);
@@ -2278,7 +2345,9 @@ function renderNotifications() {
 }
 
 function renderCondBars() {
-  const map={}; cases.forEach(x=>{const k=x.condition||'อื่นๆ'; map[k]=(map[k]||0)+1;});
+  const map={};
+  if(serverStats) serverStats.conditions.forEach(row => { map[row.k] = row.n; });
+  else cases.forEach(x=>{const k=x.condition||'อื่นๆ'; map[k]=(map[k]||0)+1;});
   const arr = Object.entries(map).sort((a,b)=>b[1]-a[1]);
   document.getElementById('cond-cnt-badge').textContent = arr.length+' ประเภท';
   const max = arr[0]?arr[0][1]:1;
@@ -2294,8 +2363,8 @@ function renderCondBars() {
 // B8-5 คิวทดสอบ: เก่าสุดก่อนตามวันที่รับ — ไม่มีวันที่รับ ไปท้ายคิว (เรียงตามวันที่สร้าง) แสดงป้าย "ไม่มีวันที่"
 function renderTestList() {
   const key = r => r.receivedDate || ('9999-12-31' + (r.createdAt||''));
-  const data = cases.filter(x=>TEST_ST.includes(x.status)).sort((a,b)=>strCmp(key(a),key(b)));
-  document.getElementById('test-list-cnt').textContent = data.length+' รายการ';
+  const data = serverStats ? serverStats.testQueue : cases.filter(x=>TEST_ST.includes(x.status)).sort((a,b)=>strCmp(key(a),key(b)));
+  document.getElementById('test-list-cnt').textContent = (serverStats ? serverStats.test : data.length)+' รายการ';
   const el = document.getElementById('test-tbody');
   if(!data.length){el.innerHTML=`<tr><td colspan="7"><div class="no-data"><i class="ti ti-checkbox"></i>ไม่มีรายการรอทดสอบ</div></td></tr>`;return;}
   const phone = isPhone();
@@ -2333,7 +2402,9 @@ function renderTestList() {
 function buildDailyBar() {
   const el = document.getElementById('ch-daily'); if(!el)return;
   const ref = new Date(); ref.setHours(12,0,0,0);
-  const cnt = Object.create(null); cases.forEach(x=>{ if(x.receivedDate) cnt[x.receivedDate]=(cnt[x.receivedDate]||0)+1; });
+  const cnt = Object.create(null);
+  if(serverStats) serverStats.daily.forEach(row => { cnt[row.d] = row.n; });
+  else cases.forEach(x=>{ if(x.receivedDate) cnt[x.receivedDate]=(cnt[x.receivedDate]||0)+1; });
   const labels=[], data=[];
   for(let i=6;i>=0;i--){ const d=new Date(ref); d.setDate(d.getDate()-i); const key=localISO(d);
     labels.push(d.toLocaleDateString('th-TH',{day:'numeric',month:'short'}));
@@ -2376,7 +2447,8 @@ function buildStatusDonut(c) {
 function buildPieDoughnut() {
   const el = document.getElementById('ch-pie'); if(!el)return;
   const pf = Object.create(null), pw = Object.create(null);
-  cases.forEach(x=>{ pf[x.platform]=(pf[x.platform]||0)+1; if(x.wrongItem) pw[x.platform]=(pw[x.platform]||0)+1; });
+  if(serverStats) serverStats.platforms.forEach(row => { pf[row.k] = row.n; pw[row.k] = row.w; });
+  else cases.forEach(x=>{ pf[x.platform]=(pf[x.platform]||0)+1; if(x.wrongItem) pw[x.platform]=(pw[x.platform]||0)+1; });
   const data = PLATFORMS.map(p=>pf[p]||0);
   upsertChart('pie', el, {type:'doughnut',data:{labels:PLATFORMS.map(p=>p.replace('_HUAWEI','')),datasets:[{data,backgroundColor:PF_COLORS,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
   const total = data.reduce((a,b)=>a+b,0)||1;
@@ -2427,7 +2499,20 @@ function renderFlow() {
 // B8-4 นับรอบเดียว (getMonthKey ครั้งเดียวต่อเคส): เดือน (mc) · สภาพ×เดือน (cm) · เหตุผล×เดือน (rm) · ยอดรวมสภาพ/เหตุผล
 // กราฟ ตาราง และ dropdown อ่านจาก trendIdx — ไม่สแกน cases ซ้ำ · สภาพ/เหตุผลว่าง = อื่นๆ ทั้งตอนจัดอันดับและตอนนับ
 let trendMonths = [], trendTopConds = [], trendIdx = null;
-function renderTrend() {
+async function renderTrend() {
+  if(firebaseDb){
+    try {
+      const t = await firebaseDb.trend();
+      trendMonths = t.months || [];
+      trendTopConds = t.topConds || [];
+      trendIdx = {mc:t.mc||{}, cm:t.cm||{}, rm:t.rm||{}, reasonTot:t.reasonTot||{}};
+    } catch(e){ showToast('โหลดแนวโน้มไม่ได้: ' + e.message, true); return; }
+    const sel = document.getElementById('trend-filter'), cur = sel.value;
+    sel.innerHTML = '<option value="">ทุกประเภท</option>' + trendTopConds.map(k=>`<option value="${H(k)}">${H(k)}</option>`).join('');
+    sel.value = trendTopConds.includes(cur) ? cur : '';
+    buildTrendLine(sel.value||null); buildReasonLine(); buildMonthlyBar(); buildSumTable();
+    return;
+  }
   const mc=Object.create(null), cm=Object.create(null), rm=Object.create(null), condTot=Object.create(null), reasonTot=Object.create(null);
   for(const x of cases){
     const ck=x.condition||'อื่นๆ', rk=x.reason||'อื่นๆ';
@@ -2547,6 +2632,7 @@ function sortTs(r){
 }
 // ตัวกรองเดียวใช้ทั้งตารางและ Export: แท็บ + ค้นหา + Platform + สภาพสินค้า + ช่วงวันที่รับ
 function getFilteredCases(){
+  if(listRemote) return (caseFilter==='trash' ? trash : cases).slice();
   const q=norm($id('si-cases').value),pl=$id('sp-cases').value,cd=$id('sc-cases').value,df=$id('df-cases').value,dt=$id('dt-cases').value;
   const src=caseFilter==='trash'?trash:cases;
   let d=src.filter((FILTER_DEFS[caseFilter]||FILTER_DEFS.all).test);
@@ -2563,10 +2649,16 @@ let _rcT,casesLimit=100,lastCaseOrder=null,lastShownCases=[],selCases=new Set(),
 function scheduleRenderCases(){clearTimeout(_rcT);_rcT=setTimeout(()=>{casesLimit=100;renderCases();},250);}
 // Enter ในช่องค้นหา: กรองทันที · ตรงเคสเดียว → เปิดรายละเอียด แล้วเลือกข้อความไว้ให้สแกนครั้งถัดไปทับได้เลย
 // ไม่พบ / พบหลายเคส → ปิดหน้าต่างรายละเอียดของเคสก่อนหน้า (กันกดเลื่อนสถานะผิดเคส)
-function casesSearchKey(e){
+async function casesSearchKey(e){
   if(e.key!=='Enter') return;
   e.preventDefault();
   clearTimeout(_rcT); casesLimit=100;
+  if(firebaseDb){
+    const d = await fetchCasePage(), q=String(e.target.value||'').trim();
+    if(d.length===1&&caseFilter!=='trash') openViewModal(d[0].id);
+    else { closeModal('modal-view'); if(q) showToast(d.length ? 'พบ '+d.length+' รายการ — เลือกจากตาราง' : 'ไม่พบ: '+q, !d.length); }
+    return;
+  }
   const d=renderCases(), q=String(e.target.value||'').trim();
   if(d.length===1&&caseFilter!=='trash') openViewModal(d[0].id);
   else {
@@ -2594,11 +2686,25 @@ async function scanLookup(q){
   // ตรงเคสเดียวจะเปิดหน้าต่างของเคสใหม่ให้เองด้านล่าง
   ['modal-view','modal-ticket','modal-receive'].forEach(id=>{ const el=$id(id); if(el&&el.classList.contains('open')) closeModal(id); });
   rcvId=null;
-  const m=findScan(q);
+  let m;
+  if(firebaseDb){
+    const res = await firebaseDb.search(q, 50);
+    const n = norm(q);
+    const docs = (res.docs||[]).map(d => Object.assign({id:d.id, _full:true}, d.body||{}));
+    const exact = docs.filter(x => SCAN_KEYS.some(k => norm(x[k])===n));
+    m = exact.length ? exact : docs.filter(x => SCAN_KEYS.some(k => norm(x[k]).includes(n)));
+    m.forEach(putCase);
+  } else m = findScan(q);
   if(!m.length){
     // G27 เคสที่อยู่ในถังขยะ: ไม่เสนอสร้างเคสซ้ำ — ผู้ดูแลเปิดถังขยะเพื่อกู้คืน, บทบาทอื่นติดต่อผู้ดูแล
     // ไม่นับข้อมูลตัวอย่าง s1–s20 และเคสที่ถูกลบด้วย "ยกเลิกชุดนำเข้า" (realTrash) · ตรงทั้งเลขเท่านั้น
-    if(findScan(q,realTrash(),true).length){
+    let trashed = false;
+    if(firebaseDb){
+      const res = await firebaseDb.search(q, 20, true);
+      const n = norm(q);
+      trashed = (res.docs||[]).some(d => SCAN_KEYS.some(k => norm((d.body||{})[k])===n) && !trashUndone(d.body||{}) && !/^s\d+$/.test(d.id));
+    } else trashed = !!findScan(q, realTrash(), true).length;
+    if(trashed){
       if(cap('del')){
         if(await uiConfirm('เคส '+q+' อยู่ในถังขยะ — เปิดถังขยะเพื่อกู้คืนหรือไม่?')){ openCases('trash'); $id('si-cases').value=q; renderCases(); }
       } else showToast('เคสนี้อยู่ในถังขยะ — ติดต่อผู้ดูแลเพื่อกู้คืน', true);
@@ -2622,13 +2728,13 @@ async function scanLookup(q){
   openCases('all');
   $id('si-cases').value=q;
   // ตารางกรองแบบ "มีคำนี้" ทุกช่อง (รวม Remark) — แจ้งจำนวนตามที่ตารางแสดงจริง
-  const d=renderCases();
+  const d = firebaseDb ? await fetchCasePage() : renderCases();
   showToast('พบ '+d.length+' รายการ — เลือกจากรายการ');
 }
 // ── หน้าตรวจรับ (#modal-receive): Invoice / SKU / จำนวน ตัวใหญ่ + SN ที่ส่งออก → สแกน SN บนกล่องเทียบ ──
 let rcvId=null;
 function openReceivePanel(id){
-  const r=cases.find(x=>x.id===id); if(!r) return;
+  const r=caseById(id); if(!r || r.deleted) return;
   if(!cap('editAll') || !RCV_FROM.includes(r.status)){ openViewModal(id); return; }
   rcvId=id;
   const big=(l,v)=>`<div><span>${H(l)}</span>${H((v ?? '')==='' ? '—' : v)}</div>`;
@@ -2659,7 +2765,7 @@ function rcvMark(which,text,color){
 // เทียบ SN ที่สแกนกับ SN ที่ส่งออก (เทียบ Serial ไม่ใช่ SKU — บาร์โค้ดบนกล่องไม่มีรหัส SKU ภายใน)
 // คืน true = ตรง, false = ไม่ตรง, null = เทียบไม่ได้ (ยังไม่สแกน / เคสไม่มี SN ที่ส่งออก)
 function rcvCheck(){
-  const r=cases.find(x=>x.id===rcvId), inp=$id('rcv-sn'); if(!r||!inp) return null;
+  const r=caseById(rcvId), inp=$id('rcv-sn'); if(!r||!inp) return null;
   const sn=String(inp.value||'').trim();
   if(!sn){ rcvMark(null,'สแกน SN บนกล่อง หรือเลือกผลจากปุ่มด้านล่าง'); return null; }
   if(!r.serial){ rcvMark(null,'ไม่มี SN ที่ส่งออกให้เทียบ — ตรวจด้วยตา แล้วเลือกผล'); return null; }
@@ -2668,7 +2774,7 @@ function rcvCheck(){
   return false;
 }
 async function rcvAction(kind){
-  const id=rcvId; let r=cases.find(x=>x.id===id);
+  const id=rcvId; let r=caseById(id);
   if(!r){ uiAlert('เคสนี้ถูกลบแล้ว หรือไม่พบในระบบ'); closeReceivePanel(); return; }
   if(kind==='form'){ closeModal('modal-receive'); rcvId=null; openEditForm(id); return; }
   if(pendingIds.has(id)) return;
@@ -2679,7 +2785,7 @@ async function rcvAction(kind){
   if(kind==='ok' && same===false && !await uiConfirm('SN ที่สแกน ('+sn+') ไม่ตรงกับที่ส่งออก ('+r.serial+')\nยืนยันว่าสินค้าตรงกัน?')) return;
   // B9-1 ระหว่างรอยืนยัน listener ยังรับการเปลี่ยนแปลง — อ่านเคสใหม่และตรวจสถานะซ้ำ (ไม่ย้อนสถานะที่เครื่องอื่นเลื่อนไปแล้ว)
   if(!me) return;
-  r=cases.find(x=>x.id===id);
+  r=caseById(id);
   if(!r){ uiAlert('เคสนี้ถูกลบแล้ว หรือไม่พบในระบบ'); closeReceivePanel(); return; }
   if(!RCV_FROM.includes(r.status)){ uiAlert('สถานะเคสนี้เปลี่ยนเป็น "'+r.status+'" แล้ว — ตรวจรายละเอียดอีกครั้ง'); closeReceivePanel(); openViewModal(id); return; }
   if(pendingIds.has(id)) return;
@@ -2712,30 +2818,56 @@ function closeReceivePanel(){
   const sb=$id('scan-box'); if(sb) sb.focus();
 }
 // จำนวนในแต่ละแท็บ: วนเคสรอบเดียว ทดสอบทุกเงื่อนไขพร้อมกัน · แท็บผู้ดูแล (ถังขยะ) เฉพาะผู้มีสิทธิ์ลบ · แท็บ hideEmpty ที่เป็น 0 ไม่แสดง (ยกเว้นแท็บที่เลือกอยู่)
+function chipCount(k, c){
+  if(k==='all') return c.total;
+  if(k==='open') return c.open;
+  if(k==='in') return c.groups.in;
+  if(k==='test') return c.test;
+  if(k==='action') return c.action;
+  if(k==='doc') return c.byStatus['รอทำรับคืน (CN)']||0;
+  if(k==='closed') return c.byStatus['ปิดงาน']||0;
+  if(k==='wrong') return c.wrongOpen;
+  if(k==='aged') return c.aged30;
+  if(k==='today') return c.recvToday;
+  if(k==='newToday') return c.newToday;
+  if(k==='closedToday') return c.closedToday;
+  if(k==='baddate') return c.badDate||0;
+  if(k==='ageBad') return c.badAge;
+  if(k==='trash') return c.trash||0;
+  return 0;
+}
 function renderCaseChips(){
   const all=Object.entries(FILTER_DEFS), defs=all.filter(([k])=>k!=='trash'), n={};
-  defs.forEach(([k])=>{ n[k]=0; });
-  for(const c of cases) for(const [k,d] of defs) if(d.test(c)) n[k]++;
-  n.trash=trash.length;
+  if(serverStats){ all.forEach(([k])=>{ n[k]=chipCount(k, serverStats); }); }
+  else {
+    defs.forEach(([k])=>{ n[k]=0; });
+    for(const c of cases) for(const [k,d] of defs) if(d.test(c)) n[k]++;
+    n.trash=trash.length;
+  }
   $id('chip-row').innerHTML=all.filter(([k,d])=>(!d.admin||cap('del'))&&!(d.hideEmpty&&!n[k]&&caseFilter!==k)).map(([k,d])=>
     `<span class="chip ${d.alert?'alert':''} ${caseFilter===k?'active':''}" data-f="${H(k)}" onclick="setCaseFilter(this.dataset.f)">${H(d.label)} <span class="c">${n[k]}</span></span>`).join('');
 }
 // opts.keepOrder = คงลำดับแถวเดิม (listener / แสดงเพิ่ม / เลือกทั้งหมด) — แถวที่เพิ่งเปลี่ยนสถานะไม่กระโดดขึ้นบน; เคสใหม่ที่ยังไม่อยู่ในลำดับเดิมขึ้นบนสุด
 // คืนรายการที่ผ่านตัวกรองทั้งหมด (casesSearchKey ใช้)
 function renderCases(opts={}) {
-  refreshToday();   // B8-1 แท็บ รับวันนี้ / วันที่ผิดปกติ ใช้วันนี้ตามเวลาเครื่อง
+  refreshToday();
   if(caseFilter==='trash' && !cap('del')) caseFilter='all';
   if(!FILTER_DEFS[caseFilter]) caseFilter='all';
+  if(firebaseDb && !opts.local){ void fetchCasePage(opts); return []; }
+  return renderCasesBody(opts);
+}
+function renderCasesBody(opts={}) {
   renderCaseChips();
   const isTrash = caseFilter==='trash';
   const bulkOk = !isTrash && !!cap('editAll');   // ติ๊กเลือกเพื่อเปลี่ยนสถานะกลุ่ม (B6-4)
   let data = getFilteredCases();
   if(opts.keepOrder&&lastCaseOrder){const pos=new Map(lastCaseOrder.map((id,i)=>[id,i]));data.sort((a,b)=>(pos.has(a.id)?pos.get(a.id):-1)-(pos.has(b.id)?pos.get(b.id):-1));}
   else lastCaseOrder=data.map(r=>r.id);
-  const shown=data.slice(0,casesLimit);
+  const totalN = listRemote ? listTotal : data.length;
+  const shown = listRemote ? data : data.slice(0, casesLimit);
   lastShownCases=shown;
-  $id('cnt-cases').textContent=`แสดง ${shown.length} จาก ${data.length}`;
-  const eb=$id('btn-export-view'); if(eb) eb.innerHTML=`<i class="ti ti-file-spreadsheet"></i> Export Excel (${data.length})`;
+  $id('cnt-cases').textContent=`แสดง ${shown.length} จาก ${totalN}`;
+  const eb=$id('btn-export-view'); if(eb) eb.innerHTML=`<i class="ti ti-file-spreadsheet"></i> Export Excel (${listRemote ? shown.length : data.length})`;
   // ตัดเคสที่ติ๊กไว้แต่ไม่อยู่ในระบบแล้ว (ถูกลบ / ย้ายไปถังขยะ)
   if(selCases.size){ const live=new Set(cases.map(c=>c.id)); [...selCases].forEach(id=>{ if(!live.has(id)) selCases.delete(id); }); }
   const allSel=bulkOk&&shown.length>0&&shown.every(r=>selCases.has(r.id));
@@ -2747,7 +2879,9 @@ function renderCases(opts={}) {
   if(!data.length){el.innerHTML=`<tr><td colspan="8"><div class="no-data"><i class="ti ${isTrash?'ti-trash-off':'ti-search-off'}"></i>${isTrash?'ถังขยะว่าง':'ไม่พบข้อมูล'}</div></td></tr>`;return data;}
   // เลข PA/RO ใต้ Invoice (ค้นหาเจอด้วยเลขไหน ก็เห็นเลขนั้นในแถว)
   const docNo=(v,t)=>v?`<div style="font-size:9px;color:var(--tmu);font-family:var(--mono)" title="${t}">${H(v)}</div>`:'';
-  const more = data.length>shown.length ? `<tr><td colspan='8' style='text-align:center'><button class='btn btn-ghost btn-sm' onclick='casesLimit+=100;renderCases({keepOrder:true})'>แสดงเพิ่มอีก ${Math.min(100,data.length-shown.length)} (เหลือ ${data.length-shown.length})</button></td></tr>` : '';
+  const more = listRemote
+    ? (shown.length<totalN ? `<tr><td colspan='8' style='text-align:center'><button class='btn btn-ghost btn-sm' onclick='fetchCasePage({more:true})'>แสดงเพิ่มอีก ${Math.min(100,totalN-shown.length)} (เหลือ ${totalN-shown.length})</button></td></tr>` : '')
+    : (data.length>shown.length ? `<tr><td colspan='8' style='text-align:center'><button class='btn btn-ghost btn-sm' onclick='casesLimit+=100;renderCases({keepOrder:true})'>แสดงเพิ่มอีก ${Math.min(100,data.length-shown.length)} (เหลือ ${data.length-shown.length})</button></td></tr>` : '');
   // B7-2 มือถือ: หนึ่งเคส = หนึ่งการ์ด (หัวตารางถูกซ่อนด้วย CSS)
   if(isPhone()){ el.innerHTML = shown.map(r=>caseCardHTML(r,isTrash,bulkOk)).join('') + more; return data; }
   el.innerHTML = shown.map(r=>`<tr>
@@ -3076,8 +3210,9 @@ function resetForm() {
   document.querySelectorAll('#form-grid .form-input').forEach(el => { el.style.outline=''; });
   setFormRole(formRole);
 }
-function openEditForm(id) {
-  const r = cases.find(x=>x.id===id); if(!r)return;
+async function openEditForm(id) {
+  if(firebaseDb){ try { await hydrate(id); } catch(e){ showToast('เปิดฟอร์มไม่ได้: ' + e.message, true); return; } }
+  const r = caseById(id); if(!r || r.deleted)return;
   captureReturn();
   resetForm();
   editId = r.id;
@@ -3131,7 +3266,7 @@ async function saveCase(){
   // G15 จำฟอร์มที่กำลังบันทึก — ระหว่างรอเขียน ผู้ใช้อาจเปิดเคสอื่น/ฟอร์มใหม่ (ไม่รีเซ็ตหรือออกจากฟอร์มนั้น)
   const wasEdit = !!editId, ctx = editId || draftId;
   const f = readForm();
-  const prev = editId ? cases.find(x=>x.id===editId) : null;
+  const prev = editId ? caseById(editId) : null;
   if(editId && !prev){ uiAlert('เคสนี้ถูกลบแล้ว'); return; }
   if(!editId && !need('create')) return;
   if(!validateForm(f)) return;
@@ -3186,7 +3321,7 @@ async function saveCase(){
       const base = editBase.snap;
       // B9-1 กล่องยืนยันด้านบน (สินค้าผิด) ไม่หยุด listener — อ่านเคสล่าสุดก่อนตรวจการแก้ไขชนกัน (ไม่ใช้ prev ที่อ่านไว้ก่อนกล่องยืนยัน)
       if(!me) return;
-      let cur = cases.find(x=>x.id===editId);
+      let cur = caseById(editId);
       if(!cur){ uiAlert('เคสนี้ถูกลบแล้ว'); return; }
       let okAt = editBase.updatedAt;   // updatedAt ที่ผู้ใช้ยอมรับแล้ว
       if(cur.updatedAt !== editBase.updatedAt){
@@ -3222,7 +3357,7 @@ async function saveCase(){
       if(migrated) changed.status = f.status;
       // ตรวจซ้ำหลังกล่องยืนยันทั้งหมด: ถูกลบ / ถูกแก้อีกครั้งระหว่างรอยืนยัน → ไม่บันทึก (กดบันทึกอีกครั้งจะเห็นคำเตือนการแก้ไขชนกันล่าสุด)
       if(!me) return;
-      cur = cases.find(x=>x.id===editId);
+      cur = caseById(editId);
       if(!cur){ uiAlert('เคสนี้ถูกลบแล้ว'); return; }
       if(cur.updatedAt !== okAt){ showToast('เคสนี้ถูกแก้ไขจากเครื่องอื่นระหว่างรอยืนยัน — ตรวจแล้วกดบันทึกอีกครั้ง', true); return; }
       // ขนาดเอกสาร (UTF-8): แก้รูป/ลายเซ็น = เพดาน 880 KB ตามเดิม · แก้ช่องอื่น = เพดานของระบบ (~1 MB) — ข้อความถาม-ตอบที่ยาวไม่บล็อกการแก้ช่องทั่วไป
@@ -3301,7 +3436,7 @@ async function restoreCase(id){
 // to ที่ไม่ใช่ขั้นถัดไป: ผู้ดูแลทำได้เมื่อยืนยัน, บทบาทอื่นไม่ได้ — pendingIds กันกดซ้ำระหว่างรอเขียน
 async function advanceStatus(id, to){
   if(!me||!ROLES[me.role])return;   // เปลี่ยนสถานะได้ทุกบทบาทที่ใช้งานอยู่
-  let r = cases.find(x=>x.id===id); if(!r || pendingIds.has(id)) return;
+  let r = caseById(id); if(!r || r.deleted || pendingIds.has(id)) return;
   const from = r.status, n = allowedNext(r);
   if(!to){
     if(!n.length){
@@ -3320,8 +3455,8 @@ async function advanceStatus(id, to){
     if(!await uiConfirm(`${r.invoiceNo||r.orderNo||''}: ${from} → ${to}\nไม่ใช่ขั้นตอนถัดไปตามปกติ ยืนยันหรือไม่?`)) return;
     // B9-1 ระหว่างรอยืนยัน listener ยังรับการเปลี่ยนแปลง — สถานะเปลี่ยน/เคสถูกลบไปแล้ว → ไม่เขียน
     if(!me) return;
-    r = cases.find(x=>x.id===id);
-    if(!r || r.status !== from || pendingIds.has(id)){ showToast(r ? 'สถานะเคสนี้ถูกเปลี่ยนจากเครื่องอื่นระหว่างรอยืนยัน — ตรวจอีกครั้ง' : 'เคสนี้ถูกลบแล้ว', true); return; }
+    r = caseById(id);
+    if(!r || r.deleted || r.status !== from || pendingIds.has(id)){ showToast(r && !r.deleted ? 'สถานะเคสนี้ถูกเปลี่ยนจากเครื่องอื่นระหว่างรอยืนยัน — ตรวจอีกครั้ง' : 'เคสนี้ถูกลบแล้ว', true); return; }
   }
   pendingIds.add(id);
   try {
@@ -3333,7 +3468,7 @@ async function advanceStatus(id, to){
 // ฝ่ายขาย/ผู้ดูแลกดรับทราบเคสสินค้าผิด (B4-5) — แถบแจ้งเตือนแดงแสดงเฉพาะที่ยังไม่รับทราบ (B8-2)
 async function ackWrong(id){
   if(!me || !['sales','admin'].includes(me.role)) return;
-  const r = cases.find(x=>x.id===id); if(!r || pendingIds.has(id)) return;
+  const r = caseById(id); if(!r || r.deleted || pendingIds.has(id)) return;
   if(!r.wrongItem || r.wrongAckAt){ openViewModal(id); return; }
   pendingIds.add(id);
   try {
@@ -3403,7 +3538,8 @@ window.addEventListener('storage', e => {
 });
 function updateInboxBadge(){
   const b = $id('sb-inbox-cnt'); if(!b) return;
-  const n = me ? cases.filter(r => r.thread && r.thread.length && qaUnseen(r)).length : 0;
+  const src = firebaseDb ? (inboxCache || []) : cases;
+  const n = me ? src.filter(r => r.thread && r.thread.length && qaUnseen(r)).length : 0;
   b.textContent = n; b.style.display = n ? '' : 'none';
   // มือถือ: ป้ายในเมนูซ่อนอยู่หลังปุ่ม ☰ — แสดงจุดบนปุ่มเมนูด้วย
   const mb = $id('btn-menu');
@@ -3411,7 +3547,7 @@ function updateInboxBadge(){
 }
 // ไอคอนจำนวนข้อความในแถว/การ์ดเคส + จุดแดงเมื่อมีข้อความถึงฉันที่ยังไม่เห็น
 function msgTag(r){
-  const n = (r.thread || []).length; if(!n) return '';
+  const n = Array.isArray(r.thread) ? r.thread.length : (r.threadCount || 0); if(!n) return '';
   const nw = qaUnseen(r);
   return `<span class="msg-tag${nw ? ' new' : ''}" title="ข้อความถาม-ตอบ ${H(n)}${nw ? ' (มีข้อความใหม่ถึงคุณ)' : ''}"><i class="ti ti-message-circle"></i>${H(n)}</span>`;
 }
@@ -3506,9 +3642,16 @@ const INBOX_F = {
   wait:{label:'รอตอบ', test:r => { const l = qaLast(r); return !!l && !!me && l.toRole === me.role && l.role !== me.role; }}
 };
 function setInboxFilter(k){ if(INBOX_F[k]) inboxFilter = k; renderInbox(); }
-function renderInbox(){
+async function renderInbox(){
   const el = $id('inbox-list'); if(!el || !me) return;
-  const withMsg = cases.filter(r => r.thread && r.thread.length);
+  let withMsg;
+  if(firebaseDb){
+    try {
+      const pack = await firebaseDb.inbox();
+      inboxCache = pack.rows || [];
+      withMsg = inboxCache;
+    } catch(e){ showToast('โหลดกล่องข้อความไม่ได้: ' + e.message, true); return; }
+  } else withMsg = cases.filter(r => r.thread && r.thread.length);
   if(!INBOX_F[inboxFilter]) inboxFilter = 'mine';
   $id('inbox-chips').innerHTML = Object.entries(INBOX_F).map(([k,d]) => `<span class="chip ${inboxFilter === k ? 'active' : ''}" data-f="${H(k)}" onclick="setInboxFilter(this.dataset.f)">${H(d.label)} <span class="c">${H(withMsg.filter(d.test).length)}</span></span>`).join('');
   const rows = withMsg.filter(INBOX_F[inboxFilter].test).map(r => ({r, l:qaLast(r)})).filter(x => x.l).sort((a,b) => strCmp(b.l.at, a.l.at));
@@ -3634,8 +3777,14 @@ function closeModal(id) {
 }
 // toThread = เลื่อนไปที่ส่วน ถาม-ตอบ (เปิดจากกล่องข้อความ) · เปิดเคสเดิมซ้ำ (วาดใหม่) คงข้อความที่พิมพ์ค้างและผู้รับไว้
 // B9-3 เคสในถังขยะ (ผู้มีสิทธิ์ลบ): ดูได้อย่างเดียว — ไม่มีปุ่มเลื่อนสถานะ/แก้ไข/ตั๋ว/ช่องพิมพ์ถาม-ตอบ มีปุ่มกู้คืน
-function openViewModal(id, toThread) {
-  const live = cases.find(x=>x.id===id), r = live || (cap('del') ? trash.find(x=>x.id===id) : null); if(!r)return;
+async function openViewModal(id, toThread) {
+  if(firebaseDb){
+    try { if(!(await hydrate(id))){ showToast('ไม่พบเคส', true); return; } }
+    catch(e){ showToast('เปิดเคสไม่ได้: ' + e.message, true); return; }
+  }
+  const found = caseById(id);
+  const live = found && !found.deleted ? found : null;
+  const r = live || (cap('del') && found && found.deleted ? found : null); if(!r)return;
   const del = !live;
   const keep = (viewId === id && $id('modal-view').classList.contains('open') && $id('qa-text')) ? {t:$id('qa-text').value, to:$id('qa-to').value} : null;
   viewId = id;
@@ -3692,8 +3841,9 @@ function openViewModal(id, toThread) {
   if(toThread) setTimeout(() => { const s = $id('qa-sec'); if(s) s.scrollIntoView({block:'start'}); const ta = $id('qa-text'); if(ta && !isPhone()) ta.focus({preventScroll:true}); }, 30);
 }
 let ticketId = null;   // เคสของตั๋วที่เปิดอยู่ (downloadTicket)
-function openTicketModal(id) {
-  const r = cases.find(x=>x.id===id); if(!r)return;
+async function openTicketModal(id) {
+  if(firebaseDb){ try { await hydrate(id); } catch(e){ showToast('เปิดตั๋วไม่ได้: ' + e.message, true); return; } }
+  const r = caseById(id); if(!r)return;
   ticketId = id;
   // B7-4 แถวหลักแสดงเสมอ (ว่าง = —) · เลขงานดำเนินการต่อแสดงเฉพาะที่มีค่า
   const core = [['วันที่รับสินค้า',fmt(r.receivedDate)],['เลขที่บิล (PA/RO)',r.paNo],['Order Number',r.orderNo],['SKU',r.sku],['จำนวน',r.qty],['สภาพสินค้า',r.condition],['ขนส่ง',r.carrier],['Tracking No.',r.tracking],['No. CC/CCC',r.ccNo],['Serial/IMEI',r.serial],['เหตุผล',r.reason],['ผลทดสอบ',r.testResult],['วันที่ปิดงาน',fmt(r.stockDate)]];
@@ -3713,7 +3863,7 @@ function openTicketModal(id) {
       ${r.remark?`<div class="ticket-remark">${H(r.remark)}</div>`:''}
       ${r.testNote?`<div class="ticket-remark"><b>หมายเหตุผลทดสอบ:</b> ${H(r.testNote)}</div>`:''}
       ${sigBlocks(r)?`<div class="ticket-sig">${sigBlocks(r)}</div>`:''}
-      <div class="ticket-footer">Huawei Marketplace Return Management System<br>${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})}</div>
+      <div class="ticket-footer">Huawei Marketplace Return Management System<br>${new Date().toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})}<br>2026 © Synnex Warehouse Support</div>
     </div>`;
   // บาร์โค้ดเลข Invoice (CODE128) — สแกนเข้าช่อง สแกน / ค้นหาเลข แล้วเปิดเคสนี้ได้ทันที · ไม่มี Invoice / โหลดไลบรารีไม่ได้ = ซ่อนไว้
   const bc = $id('ticket-bc'); let bcOk = false;
@@ -4037,23 +4187,38 @@ function impLoadFile(e){
 // เคสในระบบมาก่อนถังขยะ (คีย์เดียวกัน เคสที่ใช้งานอยู่ชนะ) · ข้อมูลตัวอย่าง และเคสที่ถูกลบด้วย "ยกเลิกชุดนำเข้า" ไม่นับเป็นถังขยะ
 async function impStart(){
   const demo=c=>/^s\d+$/.test(c.id);
+  let live = cases, bin = trash;
+  if(firebaseDb){
+    const pack = await firebaseDb.keys();
+    const cols = pack.cols || [];
+    live = []; bin = [];
+    (pack.rows||[]).forEach(arr => {
+      const row = {};
+      if (Array.isArray(arr)) cols.forEach((col, i) => { if (arr[i] !== '' && arr[i] != null) row[col] = arr[i]; });
+      else Object.assign(row, arr);
+      row.deleted = row.deleted === true || row.deleted === 1;
+      row.undone = row.undone === true || row.undone === 1;
+      row.wrongItem = row.wrongItem === true || row.wrongItem === 1;
+      (row.deleted ? bin : live).push(row);
+    });
+  }
   let purged=0;
-  if(firebaseDb&&cases.some(demo)&&cap('del')&&await uiConfirm('พบข้อมูลตัวอย่าง (s1–s20) ในระบบ ลบก่อนนำเข้าหรือไม่?')) purged=await purgeDemoCases();
+  if(firebaseDb&&live.some(demo)&&cap('del')&&await uiConfirm('พบข้อมูลตัวอย่าง (s1–s20) ในระบบ ลบก่อนนำเข้าหรือไม่?')) purged=await purgeDemoCases();
   const byInv=new Map(), byOrd=new Map(), undoneIds=new Set();
   // คีย์ผ่าน impKey เสมอ (ทั้งเคสในระบบ ถังขยะ และขาเข้า) — ข้อความแทนเลข / เลขที่เสียแล้วไม่ใช่คีย์
   const add=(t,inv,ord)=>{ inv=impKey(inv); ord=impKey(ord); if(inv&&!byInv.has(inv)) byInv.set(inv,t); if(ord&&!byOrd.has(ord)) byOrd.set(ord,t); };
   const find=(inv,ord)=>{ inv=impKey(inv); ord=impKey(ord); return (inv&&byInv.get(inv))||(ord&&byOrd.get(ord))||null; };
   // ข้อมูลตัวอย่าง s1–s20 ในระบบจริงไม่ใช้จับคู่เลย (ลบแล้วหรือไม่ก็ตาม เช่น ผู้นำเข้าไม่มีสิทธิ์ลบ) — กันข้อมูลจริงถูกรวมเข้าเคสตัวอย่าง แล้วถูกย้ายไปถังขยะตอนลบตัวอย่าง
-  cases.forEach(c=>{ if(!(firebaseDb&&demo(c))) add({kind:'db',c},c.invoiceNo,c.orderNo); });
-  trash.forEach(c=>{
-    if(trashUndone(c)){ undoneIds.add(c.id); return; }
+  live.forEach(c=>{ if(!(firebaseDb&&demo(c))) add({kind:'db',c},c.invoiceNo,c.orderNo); });
+  bin.forEach(c=>{
+    if(c.undone || trashUndone(c)){ undoneIds.add(c.id); return; }
     if(!demo(c)) add({kind:'trash',c},c.invoiceNo,c.orderNo);
   });
   return {
     idx:{add, find},
-    allIds:new Set(cases.concat(trash).map(c=>c.id)), trashIds:new Set(trash.map(c=>c.id)), undoneIds,
+    allIds:new Set(live.concat(bin).map(c=>c.id)), trashIds:new Set(bin.map(c=>c.id)), undoneIds,
     runIds:new Set(), updates:new Map(), restoreIds:new Set(),
-    seedsLeft:!!firebaseDb&&!purged&&cases.some(demo),
+    seedsLeft:!!firebaseDb&&!purged&&live.some(demo),
     doUpdate:!!($id('imp-update')&&$id('imp-update').checked)
   };
 }
@@ -4581,9 +4746,10 @@ async function bootApp() {
   const ov = $id('boot-overlay'), msg = $id('boot-msg'), retry = $id('boot-retry');
   msg.textContent = ''; retry.style.display = 'none'; ov.style.display = 'flex';
   const bootT = setTimeout(() => { msg.textContent = 'ยังเชื่อมต่อฐานข้อมูลไม่ได้ — ตรวจสอบสัญญาณ แล้วกด ลองใหม่'; retry.style.display = ''; }, 15000);
-  try { await loadCases(); }
+  try { await loadCases(); if(firebaseDb) await ensureStats(); }
   catch(e){ clearTimeout(bootT); console.error(e); msg.textContent = 'โหลดข้อมูลไม่ได้: ' + e.message; retry.style.display = ''; return; }
   clearTimeout(bootT); ov.style.display = 'none'; booted = true;
+  startRevPoll();
   const ob = $id('offline-bar');
   if(!firebaseDb && !DEMO){ ob.textContent = 'เชื่อมต่อฐานข้อมูลกลางไม่ได้ — บันทึกไม่ได้ ตรวจว่า API /Huawei-Return/api ทำงานแล้วโหลดหน้าใหม่'; ob.style.display = ''; }
   else if(DEMO){ ob.textContent = 'โหมดทดลอง — ข้อมูลตัวอย่าง ไม่บันทึกขึ้นระบบ'; ob.style.display = ''; }

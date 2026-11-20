@@ -144,23 +144,24 @@
       if (store.timer || !store.listeners.length) return;
       store.timer = setTimeout(function () {
         store.timer = null;
-        enqueue(async function () {
-          try {
-            const changed = await pullAll();
-            if (changed || store.offline) { store.offline = false; emit(); }
-          } catch (err) { fail(err); }
-        }).finally(arm);
-      }, 2000);
+      enqueue(async function () {
+        try {
+          const row = await req('GET', '/rev');
+          const rev = Number(row && row.rev) || 0;
+          store.offline = false;
+          if (rev !== store.cursor.rev) {
+            store.cursor = { rev: rev, id: '' };
+            emit();
+          }
+        } catch (err) { fail(err); }
+      }).finally(arm);
+      }, 8000);
     }
 
     function ensure() {
       if (!store.boot) {
-        store.boot = enqueue(async function () {
-          await pullAll();
-          store.offline = false;
-          emit();
-          arm();
-        });
+        store.boot = Promise.resolve();
+        arm();
       }
       return store.boot;
     }
@@ -184,12 +185,6 @@
         merge(result.docs);
         store.offline = false;
         emit();
-        enqueue(async function () {
-          try {
-            const changed = await pullAll();
-            if (changed) { store.offline = false; emit(); }
-          } catch (err) { fail(err); }
-        });
       });
     }
 
@@ -236,7 +231,16 @@
         if (ops.length) await write(ops);
         return result;
       },
-      listUsers: function () { return req('GET', '/users').then(function (row) { return row.users || []; }); }
+      listUsers: function () { return req('GET', '/users').then(function (row) { return row.users || []; }); },
+      pageCases: function (qs) { return req('GET', '/cases?' + qs); },
+      stats: function (qs) { return req('GET', '/stats?' + qs); },
+      trend: function () { return req('GET', '/trend'); },
+      search: function (q, limit, deleted) {
+        return req('GET', '/search?q=' + encodeURIComponent(q) + '&limit=' + (limit || 50) + (deleted ? '&deleted=1' : ''));
+      },
+      rev: function () { return req('GET', '/rev'); },
+      keys: function () { return req('GET', '/keys'); },
+      inbox: function () { return req('GET', '/inbox'); }
     };
   }
 

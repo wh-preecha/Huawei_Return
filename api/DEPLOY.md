@@ -26,8 +26,8 @@ curl -fsS http://127.0.0.1:8791/Huawei-Return/api/health
 
 `health` ต้องได้ `"ok": true`, `"host": "10.128.19.192"`, `"port": 15432`, `"database": "huawei_return"`
 
-เปิด `https://10.128.19.191/Huawei-Return/`  
-บัญชีแรกที่สมัครเป็นผู้ดูแล รหัสผ่านยังเป็น PBKDF2-SHA256 150,000 รอบ (hashVer 3) เหมือนเดิม ตรวจในเบราว์เซอร์ เซิร์ฟเวอร์ตรวจแบบเดียวกันที่ `POST /Huawei-Return/api/auth/login`
+เปิด `https://10.128.19.191/Huawei-Return/`
+สมัครจากหน้าเว็บได้บทบาทฝ่ายขาย คลัง หรือ IPQC และใช้งานได้ทันที ไม่ได้เป็นผู้ดูแลเอง รหัสผ่านยังเป็น PBKDF2-SHA256 150,000 รอบ (hashVer 3) ตรวจในเบราว์เซอร์ เซิร์ฟเวอร์ตรวจแบบเดียวกันที่ `POST /Huawei-Return/api/auth/login`
 
 โหมดทดลองไม่แตะฐานข้อมูล: `index.html?demo=1`
 
